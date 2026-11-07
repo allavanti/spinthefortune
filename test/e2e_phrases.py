@@ -20,7 +20,7 @@ try:
             check(lang + ': casella condivisione spenta', not h.is_checked('#gShare'))
             h.click('#bReady'); h.wait_for_selector('#clist label')
             opts = h.eval_on_selector_all('#cat option', 'els => els.map(e => e.textContent)')
-            check(lang + ': categorie nella lingua giusta', all(c in opts for c in cats) and len(opts) == 7)
+            check(lang + ': categorie nella lingua giusta', all(c in opts for c in cats) and len(opts) == 11)
             txt = h.inner_text('#clist')
             check(lang + ': frasi nella lingua giusta', title in txt and other not in txt)
             h.select_option('#cat', cats[0]); n = h.locator('#clist label').count()

@@ -77,6 +77,13 @@ details[open] summary::after{content:"\2212"}
 details p{margin:10px 0 0;color:#d9d4f7}
 
 .final{padding:64px 0 40px}
+.support{padding:0 0 56px}
+.support-card{background:var(--ink2);border:2px solid #3a3380;border-radius:18px;padding:28px;text-align:center}
+.support-card h2{margin:0 0 8px}
+.support-card p{margin:0 auto 18px;max-width:46ch;color:#d9d4f7}
+.btn-kofi{display:inline-block;background:#72a4f2;color:#0b1636;text-decoration:none;font:800 1.05rem/1 var(--display);padding:16px 26px;border-radius:14px;box-shadow:0 5px 0 #4a78c4;transition:transform .12s,box-shadow .12s}
+.btn-kofi:hover{transform:translateY(2px);box-shadow:0 3px 0 #4a78c4}
+.site a.btn-kofi{color:#0b1636}
 footer{border-top:1px solid var(--line);margin-top:40px;padding:26px 0 44px;color:var(--mute);font-size:.92rem}
 footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;justify-content:space-between}
 
