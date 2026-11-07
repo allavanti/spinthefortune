@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Screen - Spin the Fortune</title>
+<link rel="stylesheet" href="/css/board.css">
+<style>
+.wait{
+  position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2.2vh;background:rgba(4,11,42,.9);color:#fff;text-align:center;padding:0 5vw;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+.wait[hidden]{display:none}
+.wait h1{margin:0;color:#ffd84a;font-size:clamp(22px,3.4vw,60px);letter-spacing:.04em}
+.wait p{margin:0;font-size:clamp(15px,1.8vw,32px);opacity:.85;max-width:30em}
+.wait .err{color:#ff8a80;opacity:1;min-height:1.4em}
+.wait form{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap}
+.wait input{
+  width:7.2em;font:800 clamp(28px,4.6vw,84px)/1 ui-monospace,Consolas,monospace;letter-spacing:.18em;
+  text-align:center;text-transform:uppercase;color:#fff;background:#050c24;
+  border:3px solid #2a3d7c;border-radius:14px;padding:.25em .2em;
+}
+.wait input:focus{outline:none;border-color:#ffd84a}
+.wait button{
+  font:800 clamp(18px,2.2vw,40px)/1 system-ui,sans-serif;color:#241a00;background:#f5c542;
+  border:0;border-radius:14px;padding:.7em 1.2em;cursor:pointer;
+}
+.wait .code{font:800 clamp(26px,4vw,72px)/1 ui-monospace,Consolas,monospace;letter-spacing:.2em;color:#ffd84a}
+.wait .link{background:none;color:#9fb4ff;font-weight:600;font-size:clamp(14px,1.5vw,26px);padding:.4em;text-decoration:underline}
+.wait .link[hidden]{display:none}
+</style>
+</head>
+<body class="tv">
+
+<div class="stage" id="stage">
+  <div class="scene"><i></i><i></i><i></i></div>
+  <div class="board" id="board"></div>
+</div>
+
+<div class="info">
+  <div class="panel">
+    <div class="cat-title" id="catTitle">&nbsp;</div>
+    <div class="rule"></div>
+    <div class="letters" id="lettersHit">&nbsp;</div>
+  </div>
+  <div class="panel small">
+    <div class="letters" id="lettersMiss">&nbsp;</div>
+  </div>
+  <div class="panel right" id="panelPlayers" hidden>
+    <div class="players" id="players"></div>
+  </div>
+</div>
+
+<!-- inserimento del codice -->
+<div class="wait" id="enter" hidden>
+  <h1 data-i18n="s_enter_title">Connect this screen</h1>
+  <p data-i18n="s_enter_hint">Type the code shown on the host device.</p>
+  <form id="form" autocomplete="off">
+    <input id="codeIn" maxlength="6" inputmode="text" autocapitalize="characters" spellcheck="false" aria-label="Code">
+    <button type="submit" data-i18n="s_connect">Connect</button>
+  </form>
+  <p class="err" id="err" role="alert"></p>
+</div>
+
+<!-- collegato, ma il conduttore non ha ancora inviato nulla -->
+<div class="wait" id="wait" hidden>
+  <div class="code" id="waitCode"></div>
+  <p id="waitMsg" data-i18n="s_waiting">Waiting for the host&hellip;</p>
+  <button class="link" id="change" type="button" data-i18n="s_change">Change code</button>
+</div>
+
+<script src="/js/board.js"></script>
+<script src="/js/i18n.js"></script>
+<script>
+(function(){
+'use strict';
+
+var R=window.RuotaBoard, I=window.I18N, t=I.t;
+document.title=t('screen_title');
+I.apply();
+
+function el(id){return document.getElementById(id);}
+var stage=el('stage'),board=el('board'),catEl=el('catTitle'),hitEl=el('lettersHit'),
+    missEl=el('lettersMiss'),panelPlayers=el('panelPlayers'),playersEl=el('players'),
+    enterEl=el('enter'),waitEl=el('wait'),errEl=el('err'),codeIn=el('codeIn');
+
+function store(k,v){
+  try{if(v===undefined)return localStorage.getItem(k)||'';if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v);}catch(e){}
+  return '';
+}
+function cleanCode(s){return String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);}
+
+var state=null,prevRev={},lastSeq=-1;
+
+/* ---------- disegno ---------- */
+function draw(fresh){
+  if(!state)return;
+  var W=Math.floor((stage.clientWidth-44)*0.78)-8;
+  var H=Math.floor((stage.clientHeight-12)*0.64)-8;
+  if(W<50||H<50)return;
+  var r=R.renderBoard({board:board,phrase:state.phrase,revealed:prevRev,fresh:fresh,width:W,height:H,cap:150});
+  board.classList.toggle('complete',r.complete);
+}
+function drawPanels(){
+  catEl.textContent=state.cat||' ';
+  var hits='',miss='';
+  (state.called||[]).forEach(function(c){if(c.r==='hit')hits+=c.l;else miss+=c.l;});
+  hitEl.textContent=hits||' ';
+  missEl.textContent=miss||' ';
+  var pl=state.players||[];
+  panelPlayers.hidden=!pl.length;
+  playersEl.innerHTML='';
+  pl.forEach(function(name,n){
+    var sp=document.createElement('span');
+    sp.className='pl'+(n===state.turn?' on':'');
+    sp.textContent=name;
+    playersEl.appendChild(sp);
+  });
+}
+function shake(){
+  board.classList.remove('shake');
+  void board.offsetWidth;
+  board.classList.add('shake');
+}
+function applyState(s){
+  if(!s||s.v!==1||typeof s.phrase!=='string')return;
+  var rev={};
+  (s.revealed||[]).forEach(function(i){rev[i]=true;});
+  var fresh=null;
+  if(state&&state.phrase===s.phrase){
+    fresh={};
+    Object.keys(rev).forEach(function(i){if(!prevRev[i])fresh[i]=true;});
+  }
+  var first=!state;
+  state=s;prevRev=rev;
+  draw(fresh);drawPanels();
+  var ev=s.ev;
+  if(ev&&typeof ev.seq==='number'){
+    if(!first&&ev.seq!==lastSeq&&ev.t==='miss')shake();
+    lastSeq=ev.seq;
+  }
+}
+if(typeof ResizeObserver!=='undefined'){new ResizeObserver(function(){draw(null);}).observe(stage);}
+else{window.addEventListener('resize',function(){draw(null);});}
+
+/* ---------- collegamento ---------- */
+var code='',ver=null,run=0,idle=0;
+
+function showEnter(msg){
+  run++;                       // ferma il polling in corso
+  waitEl.hidden=true;enterEl.hidden=false;
+  errEl.textContent=msg||'';
+  codeIn.value='';codeIn.focus();
+}
+function start(c){
+  code=c;store('stf-screen-code',c);
+  ver=null;idle=0;state=null;prevRev={};lastSeq=-1;
+  enterEl.hidden=true;
+  el('waitCode').textContent=c;
+  poll(++run);
+}
+function poll(my){
+  if(my!==run)return;
+  var delay=idle<60?1000:(idle<300?2000:4000);
+  var url='/api/screen?c='+encodeURIComponent(code)+(ver===null?'&first=1':'&v='+ver);
+  fetch(url,{cache:'no-store'})
+    .then(function(r){
+      if(my!==run)return null;
+      if(r.status===404){store('stf-screen-code',null);showEnter(t('s_unknown'));return null;}
+      if(r.status===429){store('stf-screen-code',null);showEnter(t('s_too_many'));return null;}
+      if(!r.ok)throw new Error('http '+r.status);
+      return r.json();
+    })
+    .then(function(d){
+      if(!d||my!==run)return;
+      if(d.same){idle++;return;}
+      idle=0;ver=d.ver;
+      if(d.view){waitEl.hidden=true;applyState(d.view);}
+      else{waitEl.hidden=false;}
+    })
+    .catch(function(){if(my===run)delay=3000;})
+    .then(function(){if(my===run)setTimeout(function(){poll(my);},delay);});
+}
+
+el('form').addEventListener('submit',function(e){
+  e.preventDefault();
+  var c=cleanCode(codeIn.value);
+  if(c.length===6)start(c);
+});
+codeIn.addEventListener('input',function(){codeIn.value=cleanCode(codeIn.value);});
+el('change').addEventListener('click',function(){showEnter('');});
+
+var m=/[?&]c=([A-Za-z0-9]{6})\b/.exec(location.search);
+var initial=cleanCode(m?m[1]:store('stf-screen-code'));
+if(initial.length===6)start(initial);else showEnter('');
+})();
+</script>
+</body>
+</html>

@@ -3,6 +3,7 @@ import { fakeD1 } from './d1shim.mjs';
 import { onRequestPost as room } from '../functions/api/room.js';
 import { onRequestPost as state } from '../functions/api/state.js';
 import { onRequestGet as screen } from '../functions/api/screen.js';
+import { onRequestGet as adminStats } from '../functions/api/admin/stats.js';
 
 const env = { DB: fakeD1() };
 const call = (fn, url, init = {}) =>
@@ -71,5 +72,14 @@ assert.equal(stat('phrase_completed'), 1); t('frase completata');
 let last;
 for (let i = 0; i < 32; i++) last = await call(screen, '/api/screen?c=ZZZZZZ', { headers: { 'CF-Connecting-IP': '9.9.9.9' } });
 assert.equal(last.s, 429); t('limite tentativi');
+
+// statistiche admin
+const adm = (tok) => adminStats({ request: new Request('http://x/api/admin/stats?days=7', { headers: tok ? { Authorization: 'Bearer ' + tok } : {} }), env }).then(async (r) => ({ s: r.status, b: await r.json() }));
+assert.equal((await adm('a'.repeat(20))).s, 503); // ADMIN_TOKEN non impostato
+env.ADMIN_TOKEN = 'segreto-lungo-1234567';
+assert.equal((await adm()).s, 401); assert.equal((await adm('sbagliato-sbagliato-1')).s, 401);
+const a = await adm('segreto-lungo-1234567');
+assert.equal(a.s, 200); assert.equal(a.b.rooms_total, 1); assert.ok(a.b.rows.some((r) => r.name === 'room_created' && r.n === 1 && r.lang === 'it'));
+t('statistiche admin');
 
 console.log(`\n${ok} test passati`);

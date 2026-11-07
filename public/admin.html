@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Admin - Spin the Fortune</title>
+<style>
+body{margin:0;background:#120f3a;color:#f3f0ff;font:15px/1.5 system-ui,sans-serif;padding:20px}
+h1{font-size:1.3rem;margin:0 0 14px}h2{font-size:1.05rem;margin:26px 0 8px;color:#ffc83d}
+form{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+input,select,button{font:inherit;padding:8px 10px;border-radius:8px;border:2px solid #2a3d7c;background:#050c24;color:#fff}
+button{background:#ffc83d;color:#241a00;border-color:#ffc83d;font-weight:700;cursor:pointer}
+table{border-collapse:collapse;min-width:280px}td,th{padding:5px 12px;border-bottom:1px solid #2a3d7c;text-align:right}
+th:first-child,td:first-child{text-align:left}.wrap{overflow-x:auto}#msg{color:#ff8a80;min-height:1.4em}
+</style>
+</head>
+<body>
+<h1>Spin the Fortune - usage</h1>
+<form id="f">
+  <input id="tok" type="password" placeholder="ADMIN_TOKEN" autocomplete="off" aria-label="Admin token">
+  <select id="days" aria-label="Days"><option value="7">7 days</option><option value="30" selected>30 days</option><option value="90">90 days</option></select>
+  <button type="submit">Load</button>
+</form>
+<div id="msg" role="alert"></div>
+<div id="out"></div>
+<script>
+(function(){
+'use strict';
+function el(i){return document.getElementById(i);}
+var tok=el('tok');
+try{tok.value=sessionStorage.getItem('stf-admin')||'';}catch(e){}
+
+function sum(rows,key){
+  var m={};rows.forEach(function(r){var k=key(r);m[k]=(m[k]||0)+r.n;});return m;
+}
+function table(title,head,rowsArr){
+  var h='<h2>'+title+'</h2><div class="wrap"><table><tr>'+head.map(function(x){return '<th>'+x+'</th>';}).join('')+'</tr>';
+  rowsArr.forEach(function(r){h+='<tr>'+r.map(function(x){return '<td>'+x+'</td>';}).join('')+'</tr>';});
+  return h+'</table></div>';
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+
+function show(d){
+  var rows=d.rows,names=Object.keys(sum(rows,function(r){return r.name;})).sort();
+  var days=Object.keys(sum(rows,function(r){return r.day;})).sort().reverse();
+  var byDayName={};rows.forEach(function(r){var k=r.day+'|'+r.name;byDayName[k]=(byDayName[k]||0)+r.n;});
+  var h='<p>Rooms in database: <b>'+d.rooms_total+'</b> (active in the last hour: <b>'+d.rooms_active_1h+'</b>). Since '+esc(d.since)+'.</p>';
+  var tot=sum(rows,function(r){return r.name;});
+  h+=table('Totals',['event','count'],names.map(function(n){return [esc(n),tot[n]];}));
+  h+=table('By day',['day'].concat(names.map(esc)),days.map(function(day){
+    return [esc(day)].concat(names.map(function(n){return byDayName[day+'|'+n]||0;}));
+  }));
+  var lang=sum(rows.filter(function(r){return r.name==='room_created';}),function(r){return r.lang;});
+  h+=table('Rooms created by language',['language','rooms'],Object.keys(lang).map(function(k){return [esc(k),lang[k]];}));
+  var c=sum(rows.filter(function(r){return r.name==='room_created';}),function(r){return r.country||'?';});
+  var ck=Object.keys(c).sort(function(a,b){return c[b]-c[a];}).slice(0,15);
+  h+=table('Rooms created by country (top 15)',['country','rooms'],ck.map(function(k){return [esc(k),c[k]];}));
+  el('out').innerHTML=h;
+}
+
+el('f').addEventListener('submit',function(e){
+  e.preventDefault();
+  el('msg').textContent='';
+  fetch('/api/admin/stats?days='+encodeURIComponent(el('days').value),{headers:{Authorization:'Bearer '+tok.value.trim()}})
+    .then(function(r){return r.json().then(function(j){return {s:r.status,j:j};});})
+    .then(function(x){
+      if(x.s!==200){el('out').innerHTML='';el('msg').textContent=x.j.error||('HTTP '+x.s);return;}
+      try{sessionStorage.setItem('stf-admin',tok.value.trim());}catch(e){}
+      show(x.j);
+    })
+    .catch(function(){el('msg').textContent='Network error';});
+});
+})();
+</script>
+</body>
+</html>
