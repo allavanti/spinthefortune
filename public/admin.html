@@ -18,30 +18,48 @@ th:first-child,td:first-child{text-align:left}.wrap{overflow-x:auto}.top{display
 .mi .txt{white-space:pre-wrap;margin:0 0 10px}.mi .ans{border-left:4px solid #ffc83d;padding:4px 0 4px 12px;margin:0 0 10px;white-space:pre-wrap;color:#d9d4f7}
 .mi textarea{width:100%;min-height:80px;background:#050c24;color:#fff;border:2px solid #2a3d7c;border-radius:8px;padding:8px;font:inherit;margin-bottom:8px}
 .mi .row{display:flex;gap:8px;flex-wrap:wrap}.mi .del{background:#050c24;color:#ff8a80;border-color:#7a2f2a}.mi .alt{background:#050c24;color:#fff;border-color:#2a3d7c}
-#ok{color:#7dffb0;min-height:1.4em}[hidden]{display:none!important}
+#ok{color:#7dffb0;min-height:1.4em}
+.pi{display:flex;gap:10px;align-items:flex-start;border-top:1px solid #2a3d7c;padding:10px 0}.pi input[type=checkbox]{width:20px;height:20px;margin-top:3px;flex:none}
+.pi .b{flex:1;min-width:0}.pi .t{font-weight:700;overflow-wrap:anywhere}.pi .m{font-size:13px;color:#b9b3e6}.pi .m b{color:#ffc83d}
+.pi .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.pi .acts button,.bar button{padding:5px 10px;font-size:13px}
+.pi .edit{display:grid;gap:6px;margin-top:6px}.pi .edit input,.pi .edit select{width:100%}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}.bar .no{background:#050c24;color:#fff;border-color:#2a3d7c}.bar .del{background:#050c24;color:#ff8a80;border-color:#7a2f2a}[hidden]{display:none!important}
 </style>
 </head>
 <body>
 <div class="top"><h1 id="h1"></h1><div class="lg" role="group" aria-label="Lingua / Language"><button type="button" data-l="it">IT</button><button type="button" data-l="en">EN</button></div></div>
 <form id="f">
   <input id="tok" type="password" placeholder="ADMIN_TOKEN" autocomplete="off">
-  <select id="days"><option value="7"></option><option value="30" selected></option><option value="90"></option></select>
   <button type="submit" id="bLoad"></button>
 </form>
 <div id="msg" role="alert"></div>
 <div id="ok" role="status"></div>
-<div class="tabs"><button type="button" id="tUsage" class="on"></button><button type="button" id="tMsgs"></button></div>
-<div id="out"></div>
-<div id="msgbox" hidden>
-  <select id="mFilter"><option value="open"></option><option value="answered"></option><option value="all"></option></select>
-  <div id="mlist"></div>
+<div id="panel" hidden>
+  <div class="tabs"><button type="button" id="tUsage" class="on"></button><button type="button" id="tMsgs"></button><button type="button" id="tPhr"></button><button type="button" id="bOut"></button></div>
+  <select id="days"><option value="7"></option><option value="30" selected></option><option value="90"></option></select>
+  <div id="out"></div>
+  <div id="msgbox" hidden>
+    <select id="mFilter"><option value="open"></option><option value="answered"></option><option value="all"></option></select>
+    <div id="mlist"></div>
+  </div>
+  <div id="phrbox" hidden>
+    <div class="bar">
+      <select id="pStatus"><option value="pending"></option><option value="reported"></option><option value="approved"></option><option value="rejected"></option></select>
+      <select id="pLang"><option value="all"></option><option value="it"></option><option value="en"></option></select>
+    </div>
+    <div class="bar">
+      <label><input type="checkbox" id="pAll"> <span id="pAllT"></span></label>
+      <button type="button" id="pApprove"></button><button type="button" id="pReject" class="no"></button><button type="button" id="pDelete" class="del"></button>
+    </div>
+    <div id="plist"></div>
+  </div>
 </div>
 <script>
 (function(){
 'use strict';
 function el(i){return document.getElementById(i);}
 var D={
-  it:{h1:'Gira la Fortuna - utilizzo',d7:'7 giorni',d30:'30 giorni',d90:'90 giorni',load:'Carica',
+  it:{h1:'Gira la Fortuna - utilizzo',d7:'7 giorni',d30:'30 giorni',d90:'90 giorni',load:'Accedi',out:'Esci',
       rooms:'Stanze nel database',active:'attive nell\u2019ultima ora',since:'Dal',
       totals:'Totali',event:'evento',count:'totale',byDay:'Per giorno',day:'giorno',
       byLang:'Stanze create per lingua',lang:'lingua',nrooms:'stanze',
@@ -51,8 +69,14 @@ var D={
       kquestion:'Domanda',ksuggestion:'Suggerimento',kbug:'Problema',noMsg:'Nessun messaggio',
       replyPh:'Scrivi la risposta: l\u2019utente la vedr\u00e0 sulla pagina Domande e suggerimenti',send:'Invia risposta',update:'Aggiorna risposta',
       del:'Elimina',reopen:'Riapri',confirmDel:'Eliminare questo messaggio?',saved:'Risposta salvata',emptyReply:'Scrivi una risposta',
-      code:'Codice',email:'Email',answer:'Risposta data'},
-  en:{h1:'Spin the Fortune - usage',d7:'7 days',d30:'30 days',d90:'90 days',load:'Load',
+      code:'Codice',email:'Email',answer:'Risposta data',
+      tPhr:'Frasi',pPending:'Da approvare',pReported:'Segnalate',pApproved:'Approvate',pRejected:'Rifiutate',
+      pAllLang:'Tutte le lingue',pIt:'Italiano',pEn:'Inglese',pAll:'Seleziona tutte',
+      pApprove:'Approva selezionate',pReject:'Rifiuta selezionate',pDelete:'Elimina selezionate',noPhr:'Nessuna frase',
+      pProp:'Proposte',pRep:'Segnalazioni',pCat:'Categoria',pLangL:'Lingua',pEdit:'Modifica',pSave:'Salva',pCancel:'Annulla',
+      pConfirmDel:'Eliminare le frasi selezionate?',pNone:'Seleziona almeno una frase',pDone:'Fatto',
+      badPhrase:'Frase non valida (4-60 caratteri, niente link o parole non ammesse)',dupPhrase:'Esiste gi\u00e0 una frase uguale',notFound:'Non trovata'},
+  en:{h1:'Spin the Fortune - usage',d7:'7 days',d30:'30 days',d90:'90 days',load:'Log in',out:'Log out',
       rooms:'Rooms in database',active:'active in the last hour',since:'Since',
       totals:'Totals',event:'event',count:'count',byDay:'By day',day:'day',
       byLang:'Rooms created by language',lang:'language',nrooms:'rooms',
@@ -62,7 +86,13 @@ var D={
       kquestion:'Question',ksuggestion:'Suggestion',kbug:'Problem',noMsg:'No messages',
       replyPh:'Write the answer: the user will see it on the Questions and suggestions page',send:'Send reply',update:'Update reply',
       del:'Delete',reopen:'Reopen',confirmDel:'Delete this message?',saved:'Reply saved',emptyReply:'Write a reply',
-      code:'Code',email:'Email',answer:'Answer sent'}
+      code:'Code',email:'Email',answer:'Answer sent',
+      tPhr:'Phrases',pPending:'To approve',pReported:'Reported',pApproved:'Approved',pRejected:'Rejected',
+      pAllLang:'All languages',pIt:'Italian',pEn:'English',pAll:'Select all',
+      pApprove:'Approve selected',pReject:'Reject selected',pDelete:'Delete selected',noPhr:'No phrases',
+      pProp:'Proposals',pRep:'Reports',pCat:'Category',pLangL:'Language',pEdit:'Edit',pSave:'Save',pCancel:'Cancel',
+      pConfirmDel:'Delete the selected phrases?',pNone:'Select at least one phrase',pDone:'Done',
+      badPhrase:'Invalid phrase (4-60 characters, no links or forbidden words)',dupPhrase:'An identical phrase already exists',notFound:'Not found'}
 };
 var lang='it';
 try{var sv=localStorage.getItem('stf-admin-lang');if(sv==='en'||sv==='it')lang=sv;}catch(e){}
@@ -74,22 +104,30 @@ function errText(m){
   if(m==='troppi tentativi')return t('many');
   if(/ADMIN_TOKEN/.test(m))return t('nocfg');
   if(/database/.test(m))return t('nodb');
+  if(m==='frase non valida')return t('badPhrase');
+  if(m==='esiste gia')return t('dupPhrase');
+  if(m==='non trovata')return t('notFound');
   return m;
 }
-var lastData=null,lastMsgs=null,lastErr='',tab='usage',openCount=null;
-function drawTabLabel(){el('tMsgs').textContent=t('tMsgs')+(openCount===null?'':' ('+openCount+')');}
+var lastData=null,lastMsgs=null,lastPhr=null,lastErr='',tab='usage',openCount=null,phrCount=null;
+function drawTabLabel(){el('tMsgs').textContent=t('tMsgs')+(openCount===null?'':' ('+openCount+')');el('tPhr').textContent=t('tPhr')+(phrCount===null?'':' ('+phrCount+')');}
 function applyLang(){
   document.documentElement.lang=lang;
   el('h1').textContent=t('h1');
   var o=el('days').options;o[0].textContent=t('d7');o[1].textContent=t('d30');o[2].textContent=t('d90');
   el('bLoad').textContent=t('load');
   el('tUsage').textContent=t('tUsage');
+  el('bOut').textContent=t('out');
   drawTabLabel();
+  var po=el('pStatus').options;po[0].textContent=t('pPending');po[1].textContent=t('pReported');po[2].textContent=t('pApproved');po[3].textContent=t('pRejected');
+  var pl=el('pLang').options;pl[0].textContent=t('pAllLang');pl[1].textContent=t('pIt');pl[2].textContent=t('pEn');
+  el('pAllT').textContent=t('pAll');el('pApprove').textContent=t('pApprove');el('pReject').textContent=t('pReject');el('pDelete').textContent=t('pDelete');
   var fo=el('mFilter').options;fo[0].textContent=t('fOpen');fo[1].textContent=t('fAnswered');fo[2].textContent=t('fAll');
   var bs=document.querySelectorAll('.lg button');
   for(var i=0;i<bs.length;i++)bs[i].classList.toggle('on',bs[i].getAttribute('data-l')===lang);
   if(lastData)show(lastData);
   if(lastMsgs)renderMsgs(lastMsgs);
+  if(lastPhr)renderPhr(lastPhr);
   if(lastErr)el('msg').textContent=errText(lastErr);
 }
 var lb=document.querySelectorAll('.lg button');
@@ -144,7 +182,7 @@ function loadUsage(){
   api('/api/admin/stats?days='+encodeURIComponent(el('days').value))
     .then(function(x){
       if(x.s!==200){el('out').innerHTML='';lastData=null;fail(x);return;}
-      remember();lastData=x.j;show(x.j);
+      remember();lastData=x.j;show(x.j);enter();
     })
     .catch(function(){lastErr='__net';el('msg').textContent=errText(lastErr);});
 }
@@ -203,27 +241,133 @@ function loadMsgs(){
   api('/api/admin/messages?status='+encodeURIComponent(el('mFilter').value))
     .then(function(x){
       if(x.s!==200){el('mlist').innerHTML='';lastMsgs=null;fail(x);return;}
-      remember();lastMsgs=x.j;renderMsgs(x.j);
+      remember();lastMsgs=x.j;renderMsgs(x.j);enter();
     })
     .catch(function(){lastErr='__net';el('msg').textContent=errText(lastErr);});
 }
+
+/* ---------- frasi della community ---------- */
+var pSel={};
+function renderPhr(d){
+  phrCount=d.pending;drawTabLabel();
+  var box=el('plist');
+  box.innerHTML='';pSel={};el('pAll').checked=false;
+  if(!d.rows.length){box.appendChild(mk('p','',t('noPhr')));return;}
+  d.rows.forEach(function(r){
+    var it=mk('div','pi'),cb=document.createElement('input');
+    cb.type='checkbox';
+    cb.addEventListener('change',function(){if(cb.checked)pSel[r.lang+'|'+r.k]={lang:r.lang,k:r.k};else delete pSel[r.lang+'|'+r.k];});
+    cb.setAttribute('data-sel','1');cb.setAttribute('data-key',r.lang+'|'+r.k);
+    it.appendChild(cb);
+    var b=mk('div','b');
+    b.appendChild(mk('div','t',r.text));
+    var m=mk('div','m');
+    m.appendChild(mk('b','',r.lang.toUpperCase()));
+    m.appendChild(document.createTextNode(' · '+(r.cat||'-')+' · '+t('pProp')+': '+r.n+(r.reports?' · '+t('pRep')+': '+r.reports:'')+' · '+fmtDate(r.created)));
+    b.appendChild(m);
+    var acts=mk('div','acts');
+    var ed=mk('button','alt',t('pEdit'));ed.type='button';
+    ed.addEventListener('click',function(){
+      if(b.querySelector('.edit'))return;
+      var f=mk('div','edit');
+      var ti=document.createElement('input');ti.value=r.text;ti.maxLength=60;ti.setAttribute('aria-label',t('pEdit'));
+      var ci=document.createElement('input');ci.value=r.cat;ci.maxLength=30;ci.placeholder=t('pCat');
+      var ls=document.createElement('select');
+      [['it',t('pIt')],['en',t('pEn')]].forEach(function(o){var op=document.createElement('option');op.value=o[0];op.textContent=o[1];ls.appendChild(op);});
+      ls.value=r.lang;
+      var row=mk('div','acts');
+      var sv=mk('button','',t('pSave'));sv.type='button';
+      sv.addEventListener('click',function(){
+        el('msg').textContent='';
+        api('/api/admin/phrases',{method:'POST',body:JSON.stringify({action:'edit',lang:r.lang,k:r.k,text:ti.value,cat:ci.value,newLang:ls.value})})
+          .then(function(x){if(x.s!==200){fail(x);return;}done();loadPhr();});
+      });
+      var cn=mk('button','alt',t('pCancel'));cn.type='button';
+      cn.addEventListener('click',function(){f.remove();});
+      row.appendChild(sv);row.appendChild(cn);
+      f.appendChild(ti);f.appendChild(ci);f.appendChild(ls);f.appendChild(row);
+      b.appendChild(f);
+    });
+    acts.appendChild(ed);
+    b.appendChild(acts);
+    it.appendChild(b);
+    box.appendChild(it);
+  });
+}
+function done(){el('ok').textContent=t('pDone');setTimeout(function(){el('ok').textContent='';},2000);}
+function loadPhr(){
+  el('msg').textContent='';lastErr='';
+  api('/api/admin/phrases?status='+encodeURIComponent(el('pStatus').value)+'&lang='+encodeURIComponent(el('pLang').value))
+    .then(function(x){
+      if(x.s!==200){el('plist').innerHTML='';lastPhr=null;fail(x);return;}
+      remember();lastPhr=x.j;renderPhr(x.j);enter();
+    })
+    .catch(function(){lastErr='__net';el('msg').textContent=errText(lastErr);});
+}
+function bulk(action){
+  var items=Object.keys(pSel).map(function(k){return pSel[k];});
+  if(!items.length){el('msg').textContent=t('pNone');return;}
+  if(action==='delete'&&!window.confirm(t('pConfirmDel')))return;
+  el('msg').textContent='';
+  api('/api/admin/phrases',{method:'POST',body:JSON.stringify({action:action,items:items})})
+    .then(function(x){if(x.s!==200){fail(x);return;}done();loadPhr();});
+}
+el('pApprove').addEventListener('click',function(){bulk('approve');});
+el('pReject').addEventListener('click',function(){bulk('reject');});
+el('pDelete').addEventListener('click',function(){bulk('delete');});
+el('pStatus').addEventListener('change',loadPhr);
+el('pLang').addEventListener('change',loadPhr);
+el('pAll').addEventListener('change',function(){
+  var on=el('pAll').checked,cbs=el('plist').querySelectorAll('input[data-sel]');
+  pSel={};
+  for(var i=0;i<cbs.length;i++){
+    cbs[i].checked=on;
+    if(on){var k=cbs[i].getAttribute('data-key'),p=k.split('|');pSel[k]={lang:p[0],k:p[1]};}
+  }
+});
 
 function setTab(x){
   tab=x;
   el('out').hidden=x!=='usage';
   el('msgbox').hidden=x!=='msgs';
+  el('phrbox').hidden=x!=='phr';
   el('days').hidden=x!=='usage';
   el('tUsage').classList.toggle('on',x==='usage');
   el('tMsgs').classList.toggle('on',x==='msgs');
-  if(tok.value.trim())(x==='usage'?loadUsage:loadMsgs)();
+  el('tPhr').classList.toggle('on',x==='phr');
+  if(tok.value.trim())(x==='usage'?loadUsage:x==='msgs'?loadMsgs:loadPhr)();
 }
 el('tUsage').addEventListener('click',function(){setTab('usage');});
 el('tMsgs').addEventListener('click',function(){setTab('msgs');});
+el('tPhr').addEventListener('click',function(){setTab('phr');});
 el('mFilter').addEventListener('change',loadMsgs);
-el('f').addEventListener('submit',function(e){
-  e.preventDefault();
-  if(tab==='msgs')loadMsgs();else loadUsage();
+var authed=false;
+function enter(){
+  if(authed)return;
+  authed=true;
+  el('panel').hidden=false;
+  el('f').hidden=true;
+}
+function login(){
+  el('msg').textContent='';lastErr='';
+  api('/api/admin/messages?status=open').then(function(x){
+    if(x.s!==200){fail(x);return;}
+    lastMsgs=x.j;renderMsgs(x.j);remember();enter();
+    api('/api/admin/phrases?status=pending&lang=all').then(function(y){
+      var np=y.s===200?y.j.pending:0;
+      if(y.s===200){phrCount=np;drawTabLabel();}
+      setTab(x.j.open>0?'msgs':np>0?'phr':'usage');
+    }).catch(function(){setTab(x.j.open>0?'msgs':'usage');});
+  }).catch(function(){lastErr='__net';el('msg').textContent=errText(lastErr);});
+}
+el('bOut').addEventListener('click',function(){
+  authed=false;tok.value='';lastData=null;lastMsgs=null;lastPhr=null;openCount=null;phrCount=null;
+  try{sessionStorage.removeItem('stf-admin');}catch(e){}
+  el('panel').hidden=true;el('f').hidden=false;el('out').innerHTML='';el('mlist').innerHTML='';el('plist').innerHTML='';drawTabLabel();
 });
+el('days').addEventListener('change',loadUsage);
+el('f').addEventListener('submit',function(e){e.preventDefault();login();});
+if(tok.value)login();
 applyLang();
 })();
 </script>

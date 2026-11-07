@@ -6,6 +6,8 @@ import { onRequestGet as screen } from '../functions/api/screen.js';
 import { onRequestGet as adminStats } from '../functions/api/admin/stats.js';
 import { onRequestPost as fbPost, onRequestGet as fbGet } from '../functions/api/feedback.js';
 import { onRequestGet as admList, onRequestPost as admAct } from '../functions/api/admin/messages.js';
+import { onRequestGet as phGet, onRequestPost as phPost } from '../functions/api/phrases.js';
+import { onRequestGet as apGet, onRequestPost as apPost } from '../functions/api/admin/phrases.js';
 
 const env = { DB: fakeD1() };
 const call = (fn, url, init = {}) =>
@@ -154,5 +156,36 @@ let hs = await post(state, '/api/state', S({ hm: true }), hr.b.token); assert.eq
 let hg = await call(screen, `/api/screen?c=${hr.b.code}&first=1`); assert.equal(hg.b.view.hm, true); t('hm: nascoste inviate allo schermo');
 await post(state, '/api/state', S({ hm: 'si' }), hr.b.token);
 hg = await call(screen, `/api/screen?c=${hr.b.code}&first=1`); assert.equal(hg.b.view.hm, false); t('hm: valore non booleano ignorato');
+
+// ---- frasi della community ----
+env.ADMIN_TOKEN = ADM;
+const ph = (body) => post(phPost, '/api/phrases', body);
+const apg = (qs) => apGet({ request: new Request('http://x/api/admin/phrases?' + qs, { headers: { Authorization: 'Bearer ' + ADM } }), env }).then(async (r) => ({ s: r.status, b: await r.json() }));
+const app = (body, tok = ADM) => apPost({ request: new Request('http://x/api/admin/phrases', { method: 'POST', body: JSON.stringify(body), headers: { Authorization: 'Bearer ' + tok } }), env }).then(async (r) => ({ s: r.status, b: await r.json() }));
+let pr = await ph({ lang: 'it', items: [{ c: 'Proverbi', t: 'Chi va piano va sano' }, { t: 'http://spam.com bella' }, { t: 'ab' }, { t: 'che cazzo' }, { c: 'x', t: 'chi VA piano, va sano!' }] });
+assert.equal(pr.s, 200); assert.equal(pr.b.accepted, 1); t('frasi: filtri e doppioni nello stesso invio');
+pr = await ph({ lang: 'it', items: [{ c: 'Proverbi', t: 'Chi va piano va sano' }] });
+assert.equal(pr.b.accepted, 1);
+let pg = await apg('status=pending&lang=it');
+assert.equal(pg.b.pending, 1); assert.equal(pg.b.rows[0].n, 2); assert.equal(pg.b.rows[0].text, 'CHI VA PIANO VA SANO'); t('frasi: da approvare, contatore proposte');
+assert.equal((await call(phGet, '/api/phrases?lang=it')).b.rows.length, 0); t('frasi: non approvate non pubbliche');
+assert.equal((await ph({ lang: 'it', items: [{ t: 'Frase da bot' }], hp: 'x' })).b.accepted, 0); t('frasi: trappola robot');
+const key = pg.b.rows[0].k;
+assert.equal((await app({ items: [{ lang: 'it', k: key }], action: 'approve' }, 'sbagliato-sbagliato-1')).s, 401); t('frasi: admin richiesto');
+assert.equal((await app({ items: [{ lang: 'it', k: key }], action: 'approve' })).s, 200);
+let pub = await call(phGet, '/api/phrases?lang=it');
+assert.deepEqual(pub.b.rows, [{ c: 'Proverbi', t: 'CHI VA PIANO VA SANO' }]); t('frasi: approvata e pubblica');
+assert.equal((await call(phGet, '/api/phrases?lang=en')).b.rows.length, 0); t('frasi: catalogo separato per lingua');
+const ed = await app({ lang: 'it', k: key, action: 'edit', text: 'Chi va piano, va sano e lontano', cat: 'Proverbi', newLang: 'it' });
+assert.equal(ed.s, 200);
+pub = await call(phGet, '/api/phrases?lang=it'); assert.equal(pub.b.rows[0].t, 'CHI VA PIANO, VA SANO E LONTANO'); t('frasi: modifica testo');
+for (let i = 0; i < 3; i++) await post(phPost, '/api/phrases', { lang: 'it', report: { t: 'Chi va piano, va sano e lontano' } });
+assert.equal((await call(phGet, '/api/phrases?lang=it')).b.rows.length, 0); t('frasi: 3 segnalazioni la ritirano');
+pg = await apg('status=reported'); assert.equal(pg.b.rows.length, 1);
+await app({ items: [{ lang: 'it', k: pg.b.rows[0].k }], action: 'reject' });
+await ph({ lang: 'it', items: [{ t: 'Chi va piano va sano e lontano' }] });
+pg = await apg('status=rejected'); assert.equal(pg.b.rows.length, 1); assert.equal((await apg('status=pending')).b.rows.length, 0); t('frasi: rifiutata non torna da approvare');
+const mv = await app({ items: [{ lang: 'it', k: pg.b.rows[0].k }], action: 'delete' }); assert.equal(mv.s, 200); t('frasi: eliminazione');
+assert.ok(stat('phrases_shared') >= 2); t('frasi: contatore anonimo');
 
 console.log(`\n${ok} test passati`);

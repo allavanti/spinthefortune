@@ -70,6 +70,7 @@ try:
         check('admin: passa all\'inglese', 'usage' in adm.inner_text('h1') and 'Totals' in adm.inner_text('#out'))
         adm.reload(); check('admin: ricorda la lingua', 'usage' in adm.inner_text('h1'))
         adm.click('.lg button[data-l=it]')
+        adm.click('#bOut')
         adm.fill('#tok', 'sbagliato-sbagliato-1'); adm.click('button[type=submit]')
         adm.wait_for_function("document.getElementById('msg').textContent.length>0")
         check('admin: token errato rifiutato', True)

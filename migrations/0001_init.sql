@@ -33,3 +33,9 @@ CREATE TABLE IF NOT EXISTS messages (
   status TEXT NOT NULL DEFAULT 'open', reply TEXT NOT NULL DEFAULT '', replied INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS messages_status ON messages(status, created);
+
+CREATE TABLE IF NOT EXISTS pool (
+  lang TEXT NOT NULL, k TEXT NOT NULL, text TEXT NOT NULL, cat TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending', n INTEGER NOT NULL DEFAULT 1, reports INTEGER NOT NULL DEFAULT 0,
+  created INTEGER NOT NULL, updated INTEGER NOT NULL, PRIMARY KEY (lang, k));
+CREATE INDEX IF NOT EXISTS pool_status ON pool(status, lang, n);

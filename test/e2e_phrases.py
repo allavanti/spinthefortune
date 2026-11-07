@@ -1,0 +1,81 @@
+import subprocess, re
+from playwright.sync_api import sync_playwright
+srv = subprocess.Popen(['node', '--no-warnings', 'test/dev-server.mjs', '8793'], stdout=subprocess.PIPE, text=True); srv.stdout.readline()
+fails = []
+def check(n, c):
+    print(('ok  ' if c else 'FAIL'), n)
+    if not c: fails.append(n)
+B = 'http://localhost:8793'
+def host(ctx, lang):
+    h = ctx.new_page(); h.on('dialog', lambda d: d.accept())
+    h.goto(B + '/play?lang=' + lang); h.wait_for_selector('#bSet')
+    return h
+try:
+    with sync_playwright() as p:
+        b = p.chromium.launch(); errs = []
+        for lang, loc, cats, title, other in (('it', 'it-IT', ['Cinema', 'Storia'], 'IL PADRINO', 'THE GODFATHER'), ('en', 'en-US', ['Movies', 'History'], 'THE GODFATHER', 'IL PADRINO')):
+            ctx = b.new_context(viewport={'width': 390, 'height': 900}, locale=loc)
+            h = host(ctx, lang); h.on('pageerror', lambda e: errs.append(str(e)))
+            h.click('#bSet')
+            check(lang + ': casella condivisione spenta', not h.is_checked('#gShare'))
+            h.click('#bReady'); h.wait_for_selector('#clist label')
+            opts = h.eval_on_selector_all('#cat option', 'els => els.map(e => e.textContent)')
+            check(lang + ': categorie nella lingua giusta', all(c in opts for c in cats) and len(opts) == 6)
+            txt = h.inner_text('#clist')
+            check(lang + ': frasi nella lingua giusta', title in txt and other not in txt)
+            h.select_option('#cat', cats[0]); n = h.locator('#clist label').count()
+            check(lang + ': filtro categoria (20)', n == 20)
+            h.click('#cAll'); check(lang + ': seleziona tutte', '20' in h.inner_text('#ccount'))
+            h.click('#cAdd')
+            v = h.input_value('#txt')
+            check(lang + ': aggiunte alla lista', title in v.upper() and (cats[0] + ' | ') in v)
+            h.click('#bReady'); h.wait_for_selector('#clist label')
+            h.select_option('#cat', cats[1]); h.locator('#clist label input').first.check(); h.click('#cReplace')
+            check(lang + ': sostituisci', len(h.input_value('#txt').strip().splitlines()) == 1)
+            h.click('#dCancel')
+        # condivisione: spuntata -> arriva da approvare; non spuntata -> nulla
+        ctx = b.new_context(viewport={'width': 390, 'height': 900}, locale='it-IT'); h = host(ctx, 'it'); h.on('pageerror', lambda e: errs.append(str(e)))
+        h.click('#bSet'); h.fill('#txt', 'Proverbi | Meglio tardi che mai\nIl Padrino'); h.click('#dSave')
+        r = ctx.request.get(B + '/api/admin/phrases?status=pending', headers={'Authorization': 'Bearer test-admin-token-1234'}).json()
+        check('non spuntata: niente inviato', r['pending'] == 0)
+        h.click('#bSet'); h.fill('#txt', 'Proverbi | Meglio tardi che mai\nIl Padrino'); h.check('#gShare'); h.click('#dSave')
+        h.wait_for_function("document.getElementById('toast').textContent.includes('inviate')")
+        r = ctx.request.get(B + '/api/admin/phrases?status=pending', headers={'Authorization': 'Bearer test-admin-token-1234'}).json()
+        check('spuntata: solo la frase nuova arriva (non quella del catalogo)', r['pending'] == 1 and r['rows'][0]['text'] == 'MEGLIO TARDI CHE MAI' and r['rows'][0]['lang'] == 'it')
+        # una seconda volta non rinvia la stessa
+        h.click('#bSet'); h.check('#gShare'); h.click('#dSave'); h.wait_for_timeout(500)
+        r = ctx.request.get(B + '/api/admin/phrases?status=pending', headers={'Authorization': 'Bearer test-admin-token-1234'}).json()
+        check('non rinvia frasi gia inviate', r['rows'][0]['n'] == 1)
+        # approvata -> compare nel catalogo degli altri
+        ctx.request.post(B + '/api/admin/phrases', headers={'Authorization': 'Bearer test-admin-token-1234'}, data={'items': [{'lang': 'it', 'k': r['rows'][0]['k']}], 'action': 'approve'})
+        c2 = b.new_context(viewport={'width': 390, 'height': 900}, locale='it-IT'); h2 = host(c2, 'it')
+        h2.click('#bSet'); h2.click('#bReady'); h2.wait_for_selector('#clist label')
+        check('approvata: compare tra le frasi pronte', 'MEGLIO TARDI CHE MAI' in h2.inner_text('#clist') and 'Segnala' in h2.inner_text('#clist'))
+        # admin: accesso, poi scheda Frasi
+        ap = ctx.new_page(); ap.on('pageerror', lambda e: errs.append(str(e))); ap.on('dialog', lambda d: d.accept())
+        ctx.request.post(B + '/api/phrases', data={'lang': 'en', 'items': [{'c': 'Sayings', 't': 'A piece of cake'}, {'c': 'Sayings', 't': 'Break a leg'}]})
+        ap.goto(B + '/admin')
+        check('admin: prima del login niente schede', ap.is_hidden('#tPhr') and ap.is_hidden('#phrbox'))
+        ap.fill('#tok', 'test-admin-token-1234'); ap.click('#bLoad')
+        ap.wait_for_selector('#plist .pi')
+        check('admin: dopo il login si apre Frasi (da approvare)', ap.is_visible('#phrbox') and 'Frasi (2)' in ap.inner_text('#tPhr'))
+        check('admin: frasi da approvare in elenco', 'A PIECE OF CAKE' in ap.inner_text('#plist') and 'BREAK A LEG' in ap.inner_text('#plist'))
+        ap.check('#pAll'); ap.click('#pApprove')
+        ap.wait_for_function("document.getElementById('plist').textContent.includes('Nessuna frase')")
+        check('admin: approvate in blocco', ctx.request.get(B + '/api/phrases?lang=en').json()['rows'].__len__() == 2)
+        ap.select_option('#pStatus', 'approved'); ap.wait_for_selector('#plist .pi')
+        ap.locator('#plist .pi').first.locator('button', has_text='Modifica').click()
+        ap.locator('#plist .pi .edit input').first.fill('A piece of cake!'); ap.click('#plist .pi .edit button:has-text("Salva")')
+        ap.wait_for_function("document.getElementById('plist').textContent.includes('CAKE!')")
+        check('admin: modifica testo', True)
+        ap.locator('#plist .pi input[type=checkbox]').first.check(); ap.click('#pDelete')
+        ap.wait_for_function("document.querySelectorAll('#plist .pi').length===2")
+        check('admin: elimina selezionata', True)
+        ap.click('.lg button[data-l=en]')
+        check('admin EN: etichette inglesi', 'Phrases' in ap.inner_text('#tPhr') and 'Delete selected' in ap.inner_text('#pDelete') and 'Elimina' not in ap.inner_text('#phrbox'))
+        check('nessun errore JS', not errs)
+        if errs: print(errs)
+        b.close()
+finally:
+    srv.terminate()
+raise SystemExit(1 if fails else 0)

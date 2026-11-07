@@ -10,12 +10,15 @@ import { onRequestGet as screen } from '../functions/api/screen.js';
 import { onRequestGet as adminStats } from '../functions/api/admin/stats.js';
 import { onRequestPost as fbPost, onRequestGet as fbGet } from '../functions/api/feedback.js';
 import { onRequestPost as msgPost, onRequestGet as msgGet } from '../functions/api/admin/messages.js';
+import { onRequestPost as phPost, onRequestGet as phGet } from '../functions/api/phrases.js';
+import { onRequestPost as apPost, onRequestGet as apGet } from '../functions/api/admin/phrases.js';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
 const env = { DB: fakeD1(), ADMIN_TOKEN: 'test-admin-token-1234' };
 const api = { '/api/room': ['POST', room], '/api/state': ['POST', state], '/api/screen': ['GET', screen], '/api/admin/stats': ['GET', adminStats] };
-const multi = { '/api/feedback': { GET: fbGet, POST: fbPost }, '/api/admin/messages': { GET: msgGet, POST: msgPost } };
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.txt': 'text/plain' };
+const multi = { '/api/feedback': { GET: fbGet, POST: fbPost }, '/api/admin/messages': { GET: msgGet, POST: msgPost },
+  '/api/phrases': { GET: phGet, POST: phPost }, '/api/admin/phrases': { GET: apGet, POST: apPost } };
+const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.txt': 'text/plain', '.json': 'application/json' };
 
 export function start(port = 8788) {
   const srv = http.createServer(async (req, res) => {

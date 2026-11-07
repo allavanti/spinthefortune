@@ -93,7 +93,13 @@ dialog textarea{height:24vh;resize:vertical}
 .btn:disabled,.key:disabled{opacity:.4}
 .row{display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap}
 .row .grp{display:flex;gap:8px;margin-left:auto}
-button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid #ffd84a;outline-offset:2px}
+#cat{width:100%;background:#050c24;color:#fff;border:2px solid #2a3d7c;border-radius:8px;padding:10px;font:15px system-ui,sans-serif}
+#clist{margin:10px 0 0;max-height:46vh;overflow:auto;border-top:1px solid #2a3d7c}
+#clist label{display:flex;gap:10px;align-items:center;margin:0;padding:9px 2px;border-bottom:1px solid #1b2a5c;font-size:15px;opacity:1}
+#clist input{width:20px;height:20px;flex:none}
+#clist .rp{margin-left:auto;background:none;border:0;color:#9aa8d8;font-size:12px;text-decoration:underline;padding:4px}
+#ccount{margin:8px 0 0;font-size:13px;opacity:.8}
+button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #ffd84a;outline-offset:2px}
 </style>
 </head>
 <body class="ctl">
@@ -141,6 +147,9 @@ button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid #f
   <h2 data-i18n="settings_title">Settings</h2>
   <label for="txt" data-i18n="phrases_label">Phrases</label>
   <textarea id="txt" spellcheck="false"></textarea>
+  <div class="row" style="margin-top:8px"><button class="btn small" id="bReady" type="button" data-i18n="ready_btn">Ready-made phrases</button></div>
+  <label class="chk"><input type="checkbox" id="gShare"><span data-i18n="share_label">Share my new phrases with the community</span></label>
+  <p class="gamehint2" data-i18n="share_hint"></p>
   <label for="ptxt" data-i18n="players_label">Players</label>
   <textarea id="ptxt" spellcheck="false" data-i18n-ph="players_ph"></textarea>
   <label class="chk"><input type="checkbox" id="gMiss"><span data-i18n="show_miss_label">Show wrong letters on the screen</span></label>
@@ -160,6 +169,24 @@ button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid #f
   </div>
 </dialog>
 
+<dialog id="dlg2">
+  <h2 data-i18n="ready_title">Ready-made phrases</h2>
+  <label for="cat" class="sr" style="position:absolute;left:-9999px" data-i18n="ready_title"></label>
+  <select id="cat"></select>
+  <div id="clist" role="group" aria-live="polite"></div>
+  <p id="ccount"></p>
+  <div class="row">
+    <button class="btn small" id="cAll" type="button" data-i18n="ready_select_all">Select all shown</button>
+    <div class="grp">
+      <button class="btn" id="cClose" type="button" data-i18n="ready_close">Close</button>
+    </div>
+  </div>
+  <div class="row">
+    <button class="btn" id="cReplace" type="button" data-i18n="ready_replace">Replace my list</button>
+    <div class="grp"><button class="btn primary" id="cAdd" type="button" data-i18n="ready_add">Add to my list</button></div>
+  </div>
+</dialog>
+
 <script src="/js/board.js"></script>
 <script src="/js/rules.js"></script>
 <script src="/js/i18n.js"></script>
@@ -171,7 +198,7 @@ var R=window.RuotaBoard, RU=window.Rules, I=window.I18N, t=I.t;
 document.title=t('play_title');
 I.apply();
 
-var K={frasi:'stf-phrases-v1',conc:'stf-players-v1',partita:'stf-game-v1',room:'stf-room-v1',game:'stf-scoring-v1'};
+var K={frasi:'stf-phrases-v1',conc:'stf-players-v1',partita:'stf-game-v1',room:'stf-room-v1',game:'stf-scoring-v1',shared:'stf-shared-v1'};
 var SPIN_MS=6500;   // la ruota sulla TV gira circa 5,5 secondi
 
 function el(id){return document.getElementById(id);}
@@ -527,6 +554,7 @@ el('bSet').addEventListener('click',function(){
   var gs=gameSettings();
   el('gOn').checked=gs.on;
   el('gMiss').checked=gs.showMiss;
+  el('gShare').checked=false;
   el('gVowel').value=gs.vowel;
   el('gWheel').value=RU.wheelToText(gs.wheel,I.lang);
   dlg.showModal();
@@ -557,6 +585,7 @@ el('dSave').addEventListener('click',function(){
   set(K.conc,el('ptxt').value);
   G.phrases=list;
   G.players=parsePlayers(el('ptxt').value);
+  if(el('gShare').checked)shareNew(list);
   G.idx=0;G.called=[];G.revealed={};G.turn=0;lockUntil=0;
   applyGameSettings(true);
   RU.newRound(G,false);
@@ -564,6 +593,112 @@ el('dSave').addEventListener('click',function(){
   dlg.close();
   changed();
 });
+
+/* ---------- frasi pronte e condivisione ---------- */
+var catalog=null,catPromise=null,dlg2=el('dlg2'),picked={};
+function lng(){return I.lang==='it'?'it':'en';}
+function loadCatalog(){
+  if(catPromise)return catPromise;
+  catPromise=Promise.all([
+    fetch('/data/phrases-'+lng()+'.json').then(function(r){return r.ok?r.json():[];}).catch(function(){return [];}),
+    fetch('/api/phrases?lang='+lng(),{cache:'no-store'}).then(function(r){return r.ok?r.json():{rows:[]};}).then(function(j){return j.rows||[];}).catch(function(){return [];})
+  ]).then(function(a){
+    var seen={},out=[];
+    a[0].forEach(function(x){if(x&&x.t&&!seen[x.t]){seen[x.t]=1;out.push({c:x.c||'',t:x.t});}});
+    a[1].forEach(function(x){if(x&&x.t&&!seen[x.t]){seen[x.t]=1;out.push({c:x.c||'',t:x.t,u:1});}});
+    if(!out.length){catPromise=null;return Promise.reject(new Error('empty'));}
+    catalog=out;
+    return out;
+  });
+  return catPromise;
+}
+function pickedCount(){return Object.keys(picked).length;}
+function drawCount(){el('ccount').textContent=t('ready_selected',{n:pickedCount()});}
+function drawCatalog(){
+  var sel=el('cat'),keep=sel.value,cats=[],box=el('clist');
+  catalog.forEach(function(x){if(x.c&&cats.indexOf(x.c)<0)cats.push(x.c);});
+  cats.sort();
+  sel.innerHTML='';
+  var o=document.createElement('option');o.value='';o.textContent=t('ready_all');sel.appendChild(o);
+  cats.forEach(function(c){var op=document.createElement('option');op.value=c;op.textContent=c;sel.appendChild(op);});
+  sel.value=cats.indexOf(keep)>=0?keep:'';
+  box.innerHTML='';
+  var shown=catalog.filter(function(x){return !sel.value||x.c===sel.value;});
+  if(!shown.length){var p=document.createElement('p');p.textContent=t('ready_none');box.appendChild(p);}
+  shown.forEach(function(x){
+    var lb=document.createElement('label'),cb=document.createElement('input'),sp=document.createElement('span');
+    cb.type='checkbox';cb.checked=!!picked[x.t];
+    cb.addEventListener('change',function(){if(cb.checked)picked[x.t]=x;else delete picked[x.t];drawCount();});
+    sp.textContent=x.t;
+    lb.appendChild(cb);lb.appendChild(sp);
+    if(x.u){
+      var rp=document.createElement('button');rp.type='button';rp.className='rp';rp.textContent=t('ready_report');
+      rp.addEventListener('click',function(){
+        fetch('/api/phrases',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lang:lng(),report:{t:x.t}})}).catch(function(){});
+        catalog=catalog.filter(function(y){return y!==x;});delete picked[x.t];
+        drawCatalog();drawCount();toast(t('ready_reported'));
+      });
+      lb.appendChild(rp);
+    }
+    box.appendChild(lb);
+  });
+  drawCount();
+}
+function pickedLines(){
+  return Object.keys(picked).map(function(k){var x=picked[k];return (x.c?x.c+' | ':'')+x.t;});
+}
+el('bReady').addEventListener('click',function(){
+  picked={};
+  el('clist').textContent=t('ready_loading');el('ccount').textContent='';
+  dlg2.showModal();
+  loadCatalog().then(drawCatalog).catch(function(){el('clist').textContent=t('ready_error');});
+});
+el('cat').addEventListener('change',drawCatalog);
+el('cAll').addEventListener('click',function(){
+  var c=el('cat').value;
+  catalog.forEach(function(x){if(!c||x.c===c)picked[x.t]=x;});
+  drawCatalog();
+});
+el('cClose').addEventListener('click',function(){dlg2.close();});
+el('cAdd').addEventListener('click',function(){
+  var lines=pickedLines();
+  if(!lines.length)return;
+  var have={};
+  R.parsePhrases(el('txt').value).forEach(function(p){have[p.text]=1;});
+  var add=lines.filter(function(l){var i=l.indexOf('|');return !have[(i>=0?l.slice(i+1):l).trim()];});
+  var cur=el('txt').value.replace(/\s+$/,'');
+  el('txt').value=(cur?cur+'\n':'')+add.join('\n');
+  dlg2.close();toast(t('ready_added',{n:add.length}));
+});
+el('cReplace').addEventListener('click',function(){
+  var lines=pickedLines();
+  if(!lines.length)return;
+  el('txt').value=lines.join('\n');
+  dlg2.close();toast(t('ready_added',{n:lines.length}));
+});
+/* invio anonimo (solo se la casella e' spuntata): niente frasi del catalogo, niente frasi gia' inviate */
+function shareNew(list){
+  var sent=[];
+  try{sent=JSON.parse(get(K.shared)||'[]');}catch(e){}
+  if(!Array.isArray(sent))sent=[];
+  var seen={};sent.forEach(function(x){seen[x]=1;});
+  return loadCatalog().catch(function(){return [];}).then(function(cat){
+    var known={};(cat||[]).forEach(function(x){known[x.t]=1;});
+    var items=list.filter(function(p){return !known[p.text]&&!seen[p.text];}).slice(0,30);
+    if(!items.length)return null;
+    return fetch('/api/phrases',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({lang:lng(),items:items.map(function(p){return {c:p.cat,t:p.text};}),hp:''})
+    }).then(function(r){return r.json().then(function(j){return {s:r.status,j:j};});})
+      .then(function(x){
+        if(x.s===200){
+          items.forEach(function(p){sent.push(p.text);});
+          set(K.shared,JSON.stringify(sent.slice(-500)));
+          if(x.j.accepted)toast(t('share_sent',{n:x.j.accepted}));
+        }else toast(t('share_error'));
+      });
+  }).catch(function(){toast(t('share_error'));});
+}
 
 // tastiera fisica (se usi la pagina da PC)
 document.addEventListener('keydown',function(e){
