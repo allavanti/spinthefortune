@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Admin - Spin the Fortune</title>
+<title>Admin - Gira la Fortuna / Spin the Fortune</title>
 <style>
 body{margin:0;background:#120f3a;color:#f3f0ff;font:15px/1.5 system-ui,sans-serif;padding:20px}
 h1{font-size:1.3rem;margin:0 0 14px}h2{font-size:1.05rem;margin:26px 0 8px;color:#ffc83d}
@@ -12,15 +12,15 @@ form{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 input,select,button{font:inherit;padding:8px 10px;border-radius:8px;border:2px solid #2a3d7c;background:#050c24;color:#fff}
 button{background:#ffc83d;color:#241a00;border-color:#ffc83d;font-weight:700;cursor:pointer}
 table{border-collapse:collapse;min-width:280px}td,th{padding:5px 12px;border-bottom:1px solid #2a3d7c;text-align:right}
-th:first-child,td:first-child{text-align:left}.wrap{overflow-x:auto}#msg{color:#ff8a80;min-height:1.4em}
+th:first-child,td:first-child{text-align:left}.wrap{overflow-x:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}.top h1{margin:0}.lg{display:flex;gap:4px}.lg button{background:#050c24;color:#fff;border-color:#2a3d7c;padding:6px 12px}.lg button.on{background:#ffc83d;color:#241a00;border-color:#ffc83d}#msg{color:#ff8a80;min-height:1.4em}
 </style>
 </head>
 <body>
-<h1>Spin the Fortune - usage</h1>
+<div class="top"><h1 id="h1"></h1><div class="lg" role="group" aria-label="Lingua / Language"><button type="button" data-l="it">IT</button><button type="button" data-l="en">EN</button></div></div>
 <form id="f">
-  <input id="tok" type="password" placeholder="ADMIN_TOKEN" autocomplete="off" aria-label="Admin token">
-  <select id="days" aria-label="Days"><option value="7">7 days</option><option value="30" selected>30 days</option><option value="90">90 days</option></select>
-  <button type="submit">Load</button>
+  <input id="tok" type="password" placeholder="ADMIN_TOKEN" autocomplete="off">
+  <select id="days"><option value="7"></option><option value="30" selected></option><option value="90"></option></select>
+  <button type="submit" id="bLoad"></button>
 </form>
 <div id="msg" role="alert"></div>
 <div id="out"></div>
@@ -28,6 +28,51 @@ th:first-child,td:first-child{text-align:left}.wrap{overflow-x:auto}#msg{color:#
 (function(){
 'use strict';
 function el(i){return document.getElementById(i);}
+var D={
+  it:{h1:'Gira la Fortuna - utilizzo',d7:'7 giorni',d30:'30 giorni',d90:'90 giorni',load:'Carica',
+      rooms:'Stanze nel database',active:'attive nell\u2019ultima ora',since:'Dal',
+      totals:'Totali',event:'evento',count:'totale',byDay:'Per giorno',day:'giorno',
+      byLang:'Stanze create per lingua',lang:'lingua',nrooms:'stanze',
+      byCountry:'Stanze create per paese (primi 15)',country:'paese',
+      unauth:'non autorizzato',many:'troppi tentativi',net:'Errore di rete',nocfg:'ADMIN_TOKEN non configurato su Cloudflare',nodb:'database non collegato (variabile DB)'},
+  en:{h1:'Spin the Fortune - usage',d7:'7 days',d30:'30 days',d90:'90 days',load:'Load',
+      rooms:'Rooms in database',active:'active in the last hour',since:'Since',
+      totals:'Totals',event:'event',count:'count',byDay:'By day',day:'day',
+      byLang:'Rooms created by language',lang:'language',nrooms:'rooms',
+      byCountry:'Rooms created by country (top 15)',country:'country',
+      unauth:'not authorized',many:'too many attempts',net:'Network error',nocfg:'ADMIN_TOKEN is not set on Cloudflare',nodb:'database not bound (variable DB)'}
+};
+var lang='it';
+try{var sv=localStorage.getItem('stf-admin-lang');if(sv==='en'||sv==='it')lang=sv;}catch(e){}
+function t(k){return D[lang][k];}
+// messaggi d'errore del server (in italiano) tradotti nella lingua scelta
+function errText(m){
+  if(m==='__net')return t('net');
+  if(m==='non autorizzato')return t('unauth');
+  if(m==='troppi tentativi')return t('many');
+  if(/ADMIN_TOKEN/.test(m))return t('nocfg');
+  if(/database/.test(m))return t('nodb');
+  return m;
+}
+var lastData=null,lastErr='';
+function applyLang(){
+  document.documentElement.lang=lang;
+  el('h1').textContent=t('h1');
+  var o=el('days').options;o[0].textContent=t('d7');o[1].textContent=t('d30');o[2].textContent=t('d90');
+  el('bLoad').textContent=t('load');
+  var bs=document.querySelectorAll('.lg button');
+  for(var i=0;i<bs.length;i++)bs[i].classList.toggle('on',bs[i].getAttribute('data-l')===lang);
+  if(lastData)show(lastData);
+  if(lastErr)el('msg').textContent=errText(lastErr);
+}
+var lb=document.querySelectorAll('.lg button');
+for(var li=0;li<lb.length;li++){
+  lb[li].addEventListener('click',function(){
+    lang=this.getAttribute('data-l');
+    try{localStorage.setItem('stf-admin-lang',lang);}catch(e){}
+    applyLang();
+  });
+}
 var tok=el('tok');
 try{tok.value=sessionStorage.getItem('stf-admin')||'';}catch(e){}
 
@@ -45,32 +90,33 @@ function show(d){
   var rows=d.rows,names=Object.keys(sum(rows,function(r){return r.name;})).sort();
   var days=Object.keys(sum(rows,function(r){return r.day;})).sort().reverse();
   var byDayName={};rows.forEach(function(r){var k=r.day+'|'+r.name;byDayName[k]=(byDayName[k]||0)+r.n;});
-  var h='<p>Rooms in database: <b>'+d.rooms_total+'</b> (active in the last hour: <b>'+d.rooms_active_1h+'</b>). Since '+esc(d.since)+'.</p>';
+  var h='<p>'+t('rooms')+': <b>'+d.rooms_total+'</b> ('+t('active')+': <b>'+d.rooms_active_1h+'</b>). '+t('since')+' '+esc(d.since)+'.</p>';
   var tot=sum(rows,function(r){return r.name;});
-  h+=table('Totals',['event','count'],names.map(function(n){return [esc(n),tot[n]];}));
-  h+=table('By day',['day'].concat(names.map(esc)),days.map(function(day){
+  h+=table(t('totals'),[t('event'),t('count')],names.map(function(n){return [esc(n),tot[n]];}));
+  h+=table(t('byDay'),[t('day')].concat(names.map(esc)),days.map(function(day){
     return [esc(day)].concat(names.map(function(n){return byDayName[day+'|'+n]||0;}));
   }));
   var lang=sum(rows.filter(function(r){return r.name==='room_created';}),function(r){return r.lang;});
-  h+=table('Rooms created by language',['language','rooms'],Object.keys(lang).map(function(k){return [esc(k),lang[k]];}));
+  h+=table(t('byLang'),[t('lang'),t('nrooms')],Object.keys(lang).map(function(k){return [esc(k),lang[k]];}));
   var c=sum(rows.filter(function(r){return r.name==='room_created';}),function(r){return r.country||'?';});
   var ck=Object.keys(c).sort(function(a,b){return c[b]-c[a];}).slice(0,15);
-  h+=table('Rooms created by country (top 15)',['country','rooms'],ck.map(function(k){return [esc(k),c[k]];}));
+  h+=table(t('byCountry'),[t('country'),t('nrooms')],ck.map(function(k){return [esc(k),c[k]];}));
   el('out').innerHTML=h;
 }
 
 el('f').addEventListener('submit',function(e){
   e.preventDefault();
-  el('msg').textContent='';
+  el('msg').textContent='';lastErr='';
   fetch('/api/admin/stats?days='+encodeURIComponent(el('days').value),{headers:{Authorization:'Bearer '+tok.value.trim()}})
     .then(function(r){return r.json().then(function(j){return {s:r.status,j:j};});})
     .then(function(x){
-      if(x.s!==200){el('out').innerHTML='';el('msg').textContent=x.j.error||('HTTP '+x.s);return;}
+      if(x.s!==200){el('out').innerHTML='';lastData=null;lastErr=x.j.error||('HTTP '+x.s);el('msg').textContent=errText(lastErr);return;}
       try{sessionStorage.setItem('stf-admin',tok.value.trim());}catch(e){}
-      show(x.j);
+      lastData=x.j;show(x.j);
     })
-    .catch(function(){el('msg').textContent='Network error';});
+    .catch(function(){lastErr='__net';el('msg').textContent=errText(lastErr);});
 });
+applyLang();
 })();
 </script>
 </body>
