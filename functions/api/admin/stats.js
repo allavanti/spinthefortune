@@ -1,28 +1,13 @@
 // GET /api/admin/stats?days=30 (Authorization: Bearer ADMIN_TOKEN) -> contatori aggregati.
 // Serve la variabile segreta ADMIN_TOKEN (almeno 16 caratteri) nelle impostazioni del progetto.
-import { ensureSchema, now, sha256Hex, allow } from '../../../lib/db.js';
-import { json, ipKey } from '../../../lib/http.js';
-
-function uguali(a, b) {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
+import { now } from '../../../lib/db.js';
+import { json } from '../../../lib/http.js';
+import { adminGuard } from '../../../lib/admin.js';
 
 export async function onRequestGet({ request, env }) {
-  if (!env.DB) return json({ error: 'database non collegato (binding DB)' }, 500);
-  const atteso = env.ADMIN_TOKEN;
-  if (!atteso || atteso.length < 16) return json({ error: 'ADMIN_TOKEN non configurato' }, 503);
   try {
-    await ensureSchema(env.DB);
-    // il token dell'admin puo' avere qualsiasi carattere: non uso bearer(), che accetta solo i token delle stanze
-    const m = /^Bearer (.+)$/.exec(request.headers.get('Authorization') || '');
-    const dato = m ? m[1].trim() : '';
-    if (!dato || !uguali(dato, atteso)) {
-      const ok = await allow(env.DB, await ipKey(request, sha256Hex, 'admin'), 10, 600);
-      return json({ error: ok ? 'non autorizzato' : 'troppi tentativi' }, ok ? 401 : 429);
-    }
+    const no = await adminGuard(request, env);
+    if (no) return no;
     const days = Math.min(365, Math.max(1, parseInt(new URL(request.url).searchParams.get('days'), 10) || 30));
     const da = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
     const rows = await env.DB.prepare(

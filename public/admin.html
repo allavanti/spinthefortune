@@ -13,6 +13,12 @@ input,select,button{font:inherit;padding:8px 10px;border-radius:8px;border:2px s
 button{background:#ffc83d;color:#241a00;border-color:#ffc83d;font-weight:700;cursor:pointer}
 table{border-collapse:collapse;min-width:280px}td,th{padding:5px 12px;border-bottom:1px solid #2a3d7c;text-align:right}
 th:first-child,td:first-child{text-align:left}.wrap{overflow-x:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}.top h1{margin:0}.lg{display:flex;gap:4px}.lg button{background:#050c24;color:#fff;border-color:#2a3d7c;padding:6px 12px}.lg button.on{background:#ffc83d;color:#241a00;border-color:#ffc83d}#msg{color:#ff8a80;min-height:1.4em}
+.tabs{display:flex;gap:6px;margin:8px 0 14px}.tabs button{background:#050c24;color:#fff;border-color:#2a3d7c}.tabs button.on{background:#ffc83d;color:#241a00;border-color:#ffc83d}
+.mi{border-top:1px solid #2a3d7c;padding:14px 0}.mi .meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:#b9b3e6;margin-bottom:6px}.mi .meta b{color:#ffc83d}
+.mi .txt{white-space:pre-wrap;margin:0 0 10px}.mi .ans{border-left:4px solid #ffc83d;padding:4px 0 4px 12px;margin:0 0 10px;white-space:pre-wrap;color:#d9d4f7}
+.mi textarea{width:100%;min-height:80px;background:#050c24;color:#fff;border:2px solid #2a3d7c;border-radius:8px;padding:8px;font:inherit;margin-bottom:8px}
+.mi .row{display:flex;gap:8px;flex-wrap:wrap}.mi .del{background:#050c24;color:#ff8a80;border-color:#7a2f2a}.mi .alt{background:#050c24;color:#fff;border-color:#2a3d7c}
+#ok{color:#7dffb0;min-height:1.4em}[hidden]{display:none!important}
 </style>
 </head>
 <body>
@@ -23,7 +29,13 @@ th:first-child,td:first-child{text-align:left}.wrap{overflow-x:auto}.top{display
   <button type="submit" id="bLoad"></button>
 </form>
 <div id="msg" role="alert"></div>
+<div id="ok" role="status"></div>
+<div class="tabs"><button type="button" id="tUsage" class="on"></button><button type="button" id="tMsgs"></button></div>
 <div id="out"></div>
+<div id="msgbox" hidden>
+  <select id="mFilter"><option value="open"></option><option value="answered"></option><option value="all"></option></select>
+  <div id="mlist"></div>
+</div>
 <script>
 (function(){
 'use strict';
@@ -34,13 +46,23 @@ var D={
       totals:'Totali',event:'evento',count:'totale',byDay:'Per giorno',day:'giorno',
       byLang:'Stanze create per lingua',lang:'lingua',nrooms:'stanze',
       byCountry:'Stanze create per paese (primi 15)',country:'paese',
-      unauth:'non autorizzato',many:'troppi tentativi',net:'Errore di rete',nocfg:'ADMIN_TOKEN non configurato su Cloudflare',nodb:'database non collegato (variabile DB)'},
+      unauth:'non autorizzato',many:'troppi tentativi',net:'Errore di rete',nocfg:'ADMIN_TOKEN non configurato su Cloudflare',nodb:'database non collegato (variabile DB)',
+      tUsage:'Utilizzo',tMsgs:'Messaggi',fOpen:'Da rispondere',fAnswered:'Con risposta',fAll:'Tutti',
+      kquestion:'Domanda',ksuggestion:'Suggerimento',kbug:'Problema',noMsg:'Nessun messaggio',
+      replyPh:'Scrivi la risposta: l\u2019utente la vedr\u00e0 sulla pagina Domande e suggerimenti',send:'Invia risposta',update:'Aggiorna risposta',
+      del:'Elimina',reopen:'Riapri',confirmDel:'Eliminare questo messaggio?',saved:'Risposta salvata',emptyReply:'Scrivi una risposta',
+      code:'Codice',email:'Email',answer:'Risposta data'},
   en:{h1:'Spin the Fortune - usage',d7:'7 days',d30:'30 days',d90:'90 days',load:'Load',
       rooms:'Rooms in database',active:'active in the last hour',since:'Since',
       totals:'Totals',event:'event',count:'count',byDay:'By day',day:'day',
       byLang:'Rooms created by language',lang:'language',nrooms:'rooms',
       byCountry:'Rooms created by country (top 15)',country:'country',
-      unauth:'not authorized',many:'too many attempts',net:'Network error',nocfg:'ADMIN_TOKEN is not set on Cloudflare',nodb:'database not bound (variable DB)'}
+      unauth:'not authorized',many:'too many attempts',net:'Network error',nocfg:'ADMIN_TOKEN is not set on Cloudflare',nodb:'database not bound (variable DB)',
+      tUsage:'Usage',tMsgs:'Messages',fOpen:'To answer',fAnswered:'Answered',fAll:'All',
+      kquestion:'Question',ksuggestion:'Suggestion',kbug:'Problem',noMsg:'No messages',
+      replyPh:'Write the answer: the user will see it on the Questions and suggestions page',send:'Send reply',update:'Update reply',
+      del:'Delete',reopen:'Reopen',confirmDel:'Delete this message?',saved:'Reply saved',emptyReply:'Write a reply',
+      code:'Code',email:'Email',answer:'Answer sent'}
 };
 var lang='it';
 try{var sv=localStorage.getItem('stf-admin-lang');if(sv==='en'||sv==='it')lang=sv;}catch(e){}
@@ -54,15 +76,20 @@ function errText(m){
   if(/database/.test(m))return t('nodb');
   return m;
 }
-var lastData=null,lastErr='';
+var lastData=null,lastMsgs=null,lastErr='',tab='usage',openCount=null;
+function drawTabLabel(){el('tMsgs').textContent=t('tMsgs')+(openCount===null?'':' ('+openCount+')');}
 function applyLang(){
   document.documentElement.lang=lang;
   el('h1').textContent=t('h1');
   var o=el('days').options;o[0].textContent=t('d7');o[1].textContent=t('d30');o[2].textContent=t('d90');
   el('bLoad').textContent=t('load');
+  el('tUsage').textContent=t('tUsage');
+  drawTabLabel();
+  var fo=el('mFilter').options;fo[0].textContent=t('fOpen');fo[1].textContent=t('fAnswered');fo[2].textContent=t('fAll');
   var bs=document.querySelectorAll('.lg button');
   for(var i=0;i<bs.length;i++)bs[i].classList.toggle('on',bs[i].getAttribute('data-l')===lang);
   if(lastData)show(lastData);
+  if(lastMsgs)renderMsgs(lastMsgs);
   if(lastErr)el('msg').textContent=errText(lastErr);
 }
 var lb=document.querySelectorAll('.lg button');
@@ -104,17 +131,98 @@ function show(d){
   el('out').innerHTML=h;
 }
 
-el('f').addEventListener('submit',function(e){
-  e.preventDefault();
+function api(path,opts){
+  opts=opts||{};
+  opts.headers=Object.assign({Authorization:'Bearer '+tok.value.trim()},opts.headers||{});
+  return fetch(path,opts).then(function(r){return r.json().then(function(j){return {s:r.status,j:j};});});
+}
+function fail(x){lastErr=x.j&&x.j.error?x.j.error:('HTTP '+x.s);el('msg').textContent=errText(lastErr);}
+function remember(){try{sessionStorage.setItem('stf-admin',tok.value.trim());}catch(e){}}
+
+function loadUsage(){
   el('msg').textContent='';lastErr='';
-  fetch('/api/admin/stats?days='+encodeURIComponent(el('days').value),{headers:{Authorization:'Bearer '+tok.value.trim()}})
-    .then(function(r){return r.json().then(function(j){return {s:r.status,j:j};});})
+  api('/api/admin/stats?days='+encodeURIComponent(el('days').value))
     .then(function(x){
-      if(x.s!==200){el('out').innerHTML='';lastData=null;lastErr=x.j.error||('HTTP '+x.s);el('msg').textContent=errText(lastErr);return;}
-      try{sessionStorage.setItem('stf-admin',tok.value.trim());}catch(e){}
-      lastData=x.j;show(x.j);
+      if(x.s!==200){el('out').innerHTML='';lastData=null;fail(x);return;}
+      remember();lastData=x.j;show(x.j);
     })
     .catch(function(){lastErr='__net';el('msg').textContent=errText(lastErr);});
+}
+
+/* ---------- messaggi degli utenti ---------- */
+function fmtDate(sec){
+  try{return new Date(sec*1000).toLocaleString(lang==='it'?'it-IT':'en-GB',{dateStyle:'medium',timeStyle:'short'});}catch(e){return '';}
+}
+function mk(tag,cls,text){var n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;}
+function renderMsgs(d){
+  openCount=d.open;drawTabLabel();
+  var box=el('mlist');
+  box.innerHTML='';
+  if(!d.rows.length){box.appendChild(mk('p','',t('noMsg')));return;}
+  d.rows.forEach(function(m){
+    var it=mk('div','mi');
+    var meta=mk('div','meta');
+    meta.appendChild(mk('b','',t('k'+m.kind)));
+    meta.appendChild(mk('span','',fmtDate(m.created)));
+    meta.appendChild(mk('span','',t('code')+' '+m.id));
+    meta.appendChild(mk('span','',(m.lang||'').toUpperCase()+(m.country?' / '+m.country:'')));
+    if(m.email)meta.appendChild(mk('span','',t('email')+': '+m.email));
+    it.appendChild(meta);
+    it.appendChild(mk('p','txt',m.text));
+    if(m.reply)it.appendChild(mk('div','ans',t('answer')+(m.replied?' ('+fmtDate(m.replied)+')':'')+':\n'+m.reply));
+    var ta=document.createElement('textarea');
+    ta.placeholder=t('replyPh');ta.maxLength=2000;ta.value=m.reply||'';
+    it.appendChild(ta);
+    var row=mk('div','row');
+    var send=mk('button','',t(m.reply?'update':'send'));send.type='button';
+    send.addEventListener('click',function(){
+      var txt=ta.value.trim();
+      if(!txt){el('msg').textContent=t('emptyReply');return;}
+      el('msg').textContent='';
+      api('/api/admin/messages',{method:'POST',body:JSON.stringify({id:m.id,action:'reply',reply:txt})})
+        .then(function(x){if(x.s!==200){fail(x);return;}el('ok').textContent=t('saved');setTimeout(function(){el('ok').textContent='';},2500);loadMsgs();});
+    });
+    row.appendChild(send);
+    if(m.status==='answered'){
+      var ro=mk('button','alt',t('reopen'));ro.type='button';
+      ro.addEventListener('click',function(){api('/api/admin/messages',{method:'POST',body:JSON.stringify({id:m.id,action:'reopen'})}).then(function(x){if(x.s!==200)fail(x);else loadMsgs();});});
+      row.appendChild(ro);
+    }
+    var del=mk('button','del',t('del'));del.type='button';
+    del.addEventListener('click',function(){
+      if(!window.confirm(t('confirmDel')))return;
+      api('/api/admin/messages',{method:'POST',body:JSON.stringify({id:m.id,action:'delete'})}).then(function(x){if(x.s!==200)fail(x);else loadMsgs();});
+    });
+    row.appendChild(del);
+    it.appendChild(row);
+    box.appendChild(it);
+  });
+}
+function loadMsgs(){
+  el('msg').textContent='';lastErr='';
+  api('/api/admin/messages?status='+encodeURIComponent(el('mFilter').value))
+    .then(function(x){
+      if(x.s!==200){el('mlist').innerHTML='';lastMsgs=null;fail(x);return;}
+      remember();lastMsgs=x.j;renderMsgs(x.j);
+    })
+    .catch(function(){lastErr='__net';el('msg').textContent=errText(lastErr);});
+}
+
+function setTab(x){
+  tab=x;
+  el('out').hidden=x!=='usage';
+  el('msgbox').hidden=x!=='msgs';
+  el('days').hidden=x!=='usage';
+  el('tUsage').classList.toggle('on',x==='usage');
+  el('tMsgs').classList.toggle('on',x==='msgs');
+  if(tok.value.trim())(x==='usage'?loadUsage:loadMsgs)();
+}
+el('tUsage').addEventListener('click',function(){setTab('usage');});
+el('tMsgs').addEventListener('click',function(){setTab('msgs');});
+el('mFilter').addEventListener('change',loadMsgs);
+el('f').addEventListener('submit',function(e){
+  e.preventDefault();
+  if(tab==='msgs')loadMsgs();else loadUsage();
 });
 applyLang();
 })();

@@ -2,21 +2,9 @@
 // Il token (segreto del conduttore) non viene salvato: nel database c'e' solo il suo hash.
 import { ensureSchema, now, sha256Hex, statInc, allow, purge } from '../../lib/db.js';
 import { json, lang, country, readBody, ipKey } from '../../lib/http.js';
+import { casuale } from '../../lib/ids.js';
 
-const ALFABETO = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // senza I, L, O, 0, 1
 const CODICE_LEN = 6;
-
-function casuale(n, alfabeto) {
-  const out = [];
-  const limite = 256 - (256 % alfabeto.length);
-  while (out.length < n) {
-    const buf = crypto.getRandomValues(new Uint8Array(n * 2));
-    for (const b of buf) {
-      if (b < limite && out.length < n) out.push(alfabeto[b % alfabeto.length]);
-    }
-  }
-  return out.join('');
-}
 
 function nuovoToken() {
   const b = crypto.getRandomValues(new Uint8Array(24));
@@ -44,7 +32,7 @@ export async function onRequestPost({ request, env }) {
     const t = now();
     const c = country(request);
     for (let tentativo = 0; tentativo < 6; tentativo++) {
-      const code = casuale(CODICE_LEN, ALFABETO);
+      const code = casuale(CODICE_LEN);
       try {
         await env.DB.batch([
           env.DB.prepare(

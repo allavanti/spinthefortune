@@ -1,0 +1,72 @@
+import subprocess, re
+from playwright.sync_api import sync_playwright
+srv = subprocess.Popen(['node', '--no-warnings', 'test/dev-server.mjs', '8791'], stdout=subprocess.PIPE, text=True); srv.stdout.readline()
+fails = []
+def check(n, c):
+    print(('ok  ' if c else 'FAIL'), n)
+    if not c: fails.append(n)
+B = 'http://localhost:8791'
+try:
+    with sync_playwright() as p:
+        b = p.chromium.launch(); errs = []
+        # utente italiano
+        ctx = b.new_context(viewport={'width': 390, 'height': 900}, locale='it-IT'); pg = ctx.new_page()
+        pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.goto(B + '/feedback?lang=it')
+        check('IT: titolo', 'Domande e suggerimenti' in pg.inner_text('h1'))
+        txt = pg.inner_text('body')
+        check('IT: niente inglese', not re.search(r'\b(Send|Question|Suggestion|Your message)\b', txt))
+        pg.click('input[value=suggestion]')
+        pg.fill('#text', 'Vorrei una modalita con piu giocatori')
+        pg.click('#send')
+        pg.wait_for_selector('#status code')
+        code = pg.inner_text('#status code')
+        check('codice di 10 caratteri', len(code) == 10)
+        check('messaggio in elenco, aperto', 'piu giocatori' in pg.inner_text('#list'))
+        # admin
+        ap = ctx.new_page(); ap.on('pageerror', lambda e: errs.append(str(e)))
+        ap.on('dialog', lambda d: d.accept())
+        ap.goto(B + '/admin')
+        ap.fill('#tok', 'test-admin-token-1234')
+        ap.click('#tMsgs')
+        ap.wait_for_selector('.mi')
+        check('admin: messaggio visibile', 'piu giocatori' in ap.inner_text('#mlist'))
+        check('admin: contatore aperti', '(1)' in ap.inner_text('#tMsgs'))
+        ap.fill('.mi textarea', 'Grazie, ci stiamo lavorando.')
+        ap.click('.mi .row button')
+        ap.wait_for_function("document.getElementById('ok').textContent!==''")
+        # con filtro "da rispondere" il messaggio sparisce
+        ap.wait_for_function("document.getElementById('mlist').textContent.includes('Nessun messaggio')")
+        check('admin: sparisce dai da rispondere', True)
+        ap.select_option('#mFilter', 'answered'); ap.wait_for_selector('.mi')
+        check('admin: tra le risposte', 'ci stiamo lavorando' in ap.inner_text('#mlist'))
+        # token errato
+        ap.fill('#tok', 'sbagliato-sbagliato-sbagliato'); ap.select_option('#mFilter', 'all')
+        ap.wait_for_function("document.getElementById('msg').textContent!==''")
+        check('admin: token errato rifiutato', 'non autorizzato' in ap.inner_text('#msg'))
+        ap.fill('#tok', 'test-admin-token-1234')
+        # l'utente vede la risposta
+        pg.reload(); pg.wait_for_selector('.answer')
+        check('utente: vede la risposta', 'ci stiamo lavorando' in pg.inner_text('#list') and 'Risposto' in pg.inner_text('#list') or 'ci stiamo lavorando' in pg.inner_text('#list'))
+        # riapri ed elimina
+        ap.select_option('#mFilter', 'answered'); ap.wait_for_selector('.mi')
+        ap.click('.mi .alt'); ap.select_option('#mFilter', 'open'); ap.wait_for_selector('.mi')
+        check('admin: riaperto', 'piu giocatori' in ap.inner_text('#mlist'))
+        ap.click('.mi .del'); ap.wait_for_function("document.getElementById('mlist').textContent.includes('Nessun messaggio')")
+        check('admin: eliminato', True)
+        # inglese + admin EN
+        ctx2 = b.new_context(viewport={'width': 390, 'height': 900}, locale='en-US'); en = ctx2.new_page()
+        en.goto(B + '/feedback?lang=en')
+        check('EN: titolo', 'Questions and suggestions' in en.inner_text('h1'))
+        check('EN: niente italiano', not re.search(r'\b(Invia|Domanda|Suggerimento|messaggio)\b', en.inner_text('body')))
+        en.fill('#text', 'ab'); en.click('#send')
+        check('EN: testo troppo corto', 'at least 5' in en.inner_text('#status'))
+        # landing: link nel footer
+        en.goto(B + '/'); check('landing EN: link feedback', en.locator('footer a[href^="/feedback"]').count() == 1)
+        en.goto(B + '/it/'); check('landing IT: link feedback', 'Domande e suggerimenti' in en.inner_text('footer'))
+        check('nessun errore JS', not errs)
+        if errs: print(errs)
+        b.close()
+finally:
+    srv.terminate()
+raise SystemExit(1 if fails else 0)

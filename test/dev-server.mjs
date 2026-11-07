@@ -8,16 +8,19 @@ import { onRequestPost as room } from '../functions/api/room.js';
 import { onRequestPost as state } from '../functions/api/state.js';
 import { onRequestGet as screen } from '../functions/api/screen.js';
 import { onRequestGet as adminStats } from '../functions/api/admin/stats.js';
+import { onRequestPost as fbPost, onRequestGet as fbGet } from '../functions/api/feedback.js';
+import { onRequestPost as msgPost, onRequestGet as msgGet } from '../functions/api/admin/messages.js';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
 const env = { DB: fakeD1(), ADMIN_TOKEN: 'test-admin-token-1234' };
 const api = { '/api/room': ['POST', room], '/api/state': ['POST', state], '/api/screen': ['GET', screen], '/api/admin/stats': ['GET', adminStats] };
+const multi = { '/api/feedback': { GET: fbGet, POST: fbPost }, '/api/admin/messages': { GET: msgGet, POST: msgPost } };
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.txt': 'text/plain' };
 
 export function start(port = 8788) {
   const srv = http.createServer(async (req, res) => {
     const u = new URL(req.url, 'http://localhost');
-    const route = api[u.pathname];
+    const route = api[u.pathname] || (multi[u.pathname] && multi[u.pathname][req.method] ? [req.method, multi[u.pathname][req.method]] : null);
     if (route) {
       const chunks = []; for await (const c of req) chunks.push(c);
       const body = route[0] === 'POST' ? Buffer.concat(chunks) : undefined;

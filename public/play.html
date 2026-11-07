@@ -517,7 +517,7 @@ el('bSet').addEventListener('click',function(){
   var gs=gameSettings();
   el('gOn').checked=gs.on;
   el('gVowel').value=gs.vowel;
-  el('gWheel').value=RU.wheelToText(gs.wheel);
+  el('gWheel').value=RU.wheelToText(gs.wheel,I.lang);
   dlg.showModal();
 });
 el('dCancel').addEventListener('click',function(){dlg.close();});
@@ -541,7 +541,7 @@ el('dSave').addEventListener('click',function(){
   if(!wheel){window.alert(t('invalid_wheel'));return;}
   var vowel=parseInt(el('gVowel').value,10);
   if(!(vowel>=0&&vowel<=9999))vowel=250;
-  set(K.game,JSON.stringify({on:el('gOn').checked,vowel:vowel,wheelText:RU.wheelToText(wheel)}));
+  set(K.game,JSON.stringify({on:el('gOn').checked,vowel:vowel,wheelText:RU.wheelToText(wheel,I.lang)}));
   set(K.frasi,el('txt').value);
   set(K.conc,el('ptxt').value);
   G.phrases=list;

@@ -62,3 +62,13 @@ python3 test/e2e_game.py
 ## Limiti noti
 
 - Lo schermo usa polling: il piano gratuito di Pages Functions ha un limite giornaliero di richieste (per quanto ne so 100.000 al giorno). Per molti schermi contemporanei serve il tempo reale con Durable Objects.
+
+
+## Domande e suggerimenti
+
+Pagina pubblica `/feedback` (EN/IT). L'utente scrive un messaggio e riceve un codice di 10 caratteri; la risposta compare sulla stessa pagina
+(il codice resta salvato nel browser, oppure si ritrova inserendolo a mano). L'email e' facoltativa e viene solo memorizzata: non si inviano email
+finche' non c'e' un dominio. Protezioni: campo trappola per i robot, limite di invii per IP. Nell'admin (`/admin`, scheda "Messaggi") si
+filtra, si risponde, si riapre o si elimina; serve `ADMIN_TOKEN`. La tabella `messages` si crea da sola.
+
+Test: `node test/i18n.test.mjs` (nessun testo inglese nella versione italiana e viceversa), `python3 test/e2e_feedback.py`.

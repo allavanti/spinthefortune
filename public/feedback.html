@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#120f3a">
+<title>Questions and suggestions - Spin the Fortune</title>
+<link rel="stylesheet" href="/css/site.css">
+<style>
+.fb{max-width:680px;padding-bottom:40px}
+.fb h1{margin:10px 0 12px;font:800 clamp(1.9rem,5vw,2.8rem)/1.1 var(--display);letter-spacing:-.02em}
+.fb .intro{color:#d9d4f7;margin-bottom:22px}
+.fb form{display:grid;gap:16px}
+.fb label,.fb legend{display:block;font-weight:700;margin-bottom:6px}
+.fb fieldset{border:0;margin:0;padding:0}
+.fb .kinds{display:flex;flex-wrap:wrap;gap:8px}
+.fb .kinds label{
+  display:flex;align-items:center;gap:8px;margin:0;padding:10px 14px;border:2px solid #3a3380;border-radius:10px;
+  font-weight:600;cursor:pointer;background:var(--ink2);
+}
+.fb .kinds input{accent-color:var(--gold);width:18px;height:18px}
+.fb .kinds label:has(input:checked){border-color:var(--gold)}
+.fb textarea,.fb input[type=email],.fb input[type=text]{
+  width:100%;background:#0b0930;color:var(--text);border:2px solid #3a3380;border-radius:10px;
+  padding:12px;font:16px/1.5 var(--body);
+}
+.fb textarea{min-height:150px;resize:vertical}
+.fb textarea:focus,.fb input:focus{outline:none;border-color:var(--gold)}
+.fb .hint{font-size:.9rem;color:var(--mute);margin:6px 0 0}
+.fb .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.fb button.go{
+  justify-self:start;background:var(--gold);color:#241a00;border:0;border-radius:14px;cursor:pointer;
+  font:800 1.1rem/1 var(--display);padding:16px 26px;box-shadow:0 6px 0 #b98a00;
+}
+.fb button.go:disabled{opacity:.6;cursor:default}
+.fb button.small{background:var(--ink2);color:var(--text);border:2px solid #3a3380;border-radius:10px;font:700 .95rem var(--body);padding:10px 16px;cursor:pointer}
+.fb .status{min-height:1.5em;font-weight:700}
+.fb .status.bad{color:#ff8a80}
+.fb .status.good{color:#7dffb0}
+.fb .status code{font:800 1.2em ui-monospace,Consolas,monospace;color:var(--gold);letter-spacing:.12em}
+.fb h2{margin-top:44px}
+.fb .check{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin:0 0 18px}
+.fb .check > div{flex:1 1 200px}
+.fb .item{border-top:1px solid var(--line);padding:16px 0}
+.fb .item:last-child{border-bottom:1px solid var(--line)}
+.fb .item .top{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.9rem;color:var(--mute);margin-bottom:6px}
+.fb .item .top b{color:var(--text)}
+.fb .item .badge{font-weight:700;color:var(--gold)}
+.fb .item .badge.done{color:#7dffb0}
+.fb .item p{margin:0 0 10px;max-width:none;white-space:pre-wrap}
+.fb .item .answer{border-left:4px solid var(--gold);padding:6px 0 6px 14px;background:rgba(255,200,61,.06)}
+.fb .item .answer small{display:block;color:var(--mute);margin-bottom:2px}
+</style>
+</head>
+<body class="site">
+<div class="wrap fb">
+  <div class="bar">
+    <a class="logo" id="logo" href="/">Spin the <span>Fortune</span></a>
+    <nav class="langs" aria-label="Language">
+      <a href="#" id="lEn" lang="en">EN</a>
+      <a href="#" id="lIt" lang="it">IT</a>
+    </nav>
+  </div>
+
+  <h1 data-i18n="f_h1">Questions and suggestions</h1>
+  <p class="intro" data-i18n="f_intro"></p>
+
+  <form id="form" novalidate>
+    <fieldset>
+      <legend data-i18n="f_kind"></legend>
+      <div class="kinds">
+        <label><input type="radio" name="kind" value="question" checked><span data-i18n="f_kind_question"></span></label>
+        <label><input type="radio" name="kind" value="suggestion"><span data-i18n="f_kind_suggestion"></span></label>
+        <label><input type="radio" name="kind" value="bug"><span data-i18n="f_kind_bug"></span></label>
+      </div>
+    </fieldset>
+    <div>
+      <label for="text" data-i18n="f_msg_label"></label>
+      <textarea id="text" maxlength="1500" required data-i18n-ph="f_msg_ph"></textarea>
+    </div>
+    <div>
+      <label for="email" data-i18n="f_email_label"></label>
+      <input id="email" type="email" autocomplete="email" maxlength="120">
+      <p class="hint" data-i18n="f_email_hint"></p>
+    </div>
+    <div class="hp" aria-hidden="true"><label>Website <input id="hp" type="text" tabindex="-1" autocomplete="off"></label></div>
+    <button class="go" id="send" type="submit" data-i18n="f_send"></button>
+    <div class="status" id="status" role="status"></div>
+  </form>
+
+  <h2 data-i18n="f_mine"></h2>
+  <div class="check">
+    <div>
+      <label for="code" data-i18n="f_check_label"></label>
+      <input id="code" type="text" maxlength="10" autocomplete="off" spellcheck="false" data-i18n-ph="f_check_ph">
+    </div>
+    <button class="small" id="lookup" type="button" data-i18n="f_check"></button>
+  </div>
+  <div id="list"></div>
+
+  <p style="margin-top:30px"><a id="back" href="/" data-i18n="f_back"></a></p>
+</div>
+
+<script src="/js/i18n.js"></script>
+<script>
+(function(){
+'use strict';
+var I=window.I18N,t=I.t;
+document.title=t('f_title');
+I.apply();
+
+function el(id){return document.getElementById(id);}
+var KEY='stf-tickets-v1';
+function load(){try{var a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}}
+function save(a){try{localStorage.setItem(KEY,JSON.stringify(a.slice(0,30)));}catch(e){}}
+
+// lingua e collegamenti
+var home=I.lang==='it'?'/it/':'/';
+el('logo').setAttribute('href',home);
+el('back').setAttribute('href',home);
+el('logo').innerHTML=I.lang==='it'?'Gira la <span>Fortuna</span>':'Spin the <span>Fortune</span>';
+el('lEn').addEventListener('click',function(e){e.preventDefault();I.setLang('en');});
+el('lIt').addEventListener('click',function(e){e.preventDefault();I.setLang('it');});
+el(I.lang==='it'?'lIt':'lEn').setAttribute('aria-current','page');
+
+function setStatus(msg,cls,node){
+  var s=el('status');
+  s.className='status'+(cls?' '+cls:'');
+  s.textContent='';
+  if(node){
+    var parts=msg.split('{id}');
+    s.appendChild(document.createTextNode(parts[0]));
+    var c=document.createElement('code');c.textContent=node;s.appendChild(c);
+    s.appendChild(document.createTextNode(parts[1]||''));
+  }else{s.textContent=msg;}
+}
+
+/* ---------- elenco dei messaggi ---------- */
+function fmt(sec){
+  try{return new Date(sec*1000).toLocaleDateString(I.lang==='it'?'it-IT':'en-GB',{day:'numeric',month:'short',year:'numeric'});}catch(e){return '';}
+}
+function kindLabel(k){return t(k==='suggestion'?'f_kind_suggestion':k==='bug'?'f_kind_bug':'f_kind_question');}
+function render(items){
+  var box=el('list');
+  box.innerHTML='';
+  if(!items.length){var p=document.createElement('p');p.textContent=t('f_none');p.style.color='var(--mute)';box.appendChild(p);return;}
+  items.forEach(function(m){
+    var d=document.createElement('div');d.className='item';
+    var top=document.createElement('div');top.className='top';
+    var b=document.createElement('b');b.textContent=kindLabel(m.kind);top.appendChild(b);
+    var dt=document.createElement('span');dt.textContent=fmt(m.created);top.appendChild(dt);
+    var cd=document.createElement('span');cd.textContent=m.id;top.appendChild(cd);
+    var st=document.createElement('span');st.className='badge'+(m.status==='answered'?' done':'');
+    st.textContent=t(m.status==='answered'?'f_status_answered':'f_status_open');top.appendChild(st);
+    d.appendChild(top);
+    var p=document.createElement('p');p.textContent=m.text;d.appendChild(p);
+    if(m.reply){
+      var a=document.createElement('div');a.className='answer';
+      var sm=document.createElement('small');sm.textContent=t('f_reply')+(m.replied?' - '+fmt(m.replied):'');a.appendChild(sm);
+      var ap=document.createElement('p');ap.style.margin='0';ap.textContent=m.reply;a.appendChild(ap);
+      d.appendChild(a);
+    }
+    box.appendChild(d);
+  });
+}
+function refresh(){
+  var ids=load();
+  if(!ids.length){render([]);return;}
+  Promise.all(ids.map(function(x){
+    return fetch('/api/feedback?id='+encodeURIComponent(x.id),{cache:'no-store'})
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(d){return d?{id:x.id,kind:d.kind,text:d.text,status:d.status,reply:d.reply,created:d.created,replied:d.replied}:null;})
+      .catch(function(){return null;});
+  })).then(function(list){render(list.filter(Boolean));});
+}
+function remember(id){
+  var a=load().filter(function(x){return x.id!==id;});
+  a.unshift({id:id});
+  save(a);
+}
+
+/* ---------- invio ---------- */
+el('form').addEventListener('submit',function(e){
+  e.preventDefault();
+  var text=el('text').value.trim();
+  if(text.length<5){setStatus(t('f_too_short'),'bad');return;}
+  var kind=document.querySelector('input[name=kind]:checked').value;
+  var btn=el('send');
+  btn.disabled=true;setStatus(t('f_sending'));
+  fetch('/api/feedback',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({kind:kind,text:text,email:el('email').value.trim(),lang:I.lang,hp:el('hp').value})
+  })
+    .then(function(r){return r.json().then(function(j){return {s:r.status,j:j};});})
+    .then(function(x){
+      if(x.s===200&&x.j.id){
+        remember(x.j.id);
+        setStatus(t('f_sent'),'good',x.j.id);
+        el('text').value='';
+        refresh();
+      }else if(x.s===429){setStatus(t('f_limit'),'bad');}
+      else if(x.j&&x.j.error==='email non valida'){setStatus(t('f_email_bad'),'bad');}
+      else if(x.j&&x.j.error==='testo troppo lungo'){setStatus(t('f_too_long'),'bad');}
+      else if(x.j&&x.j.error==='testo troppo corto'){setStatus(t('f_too_short'),'bad');}
+      else{setStatus(t('f_error'),'bad');}
+    })
+    .catch(function(){setStatus(t('f_error'),'bad');})
+    .then(function(){btn.disabled=false;});
+});
+
+/* ---------- cerca per codice ---------- */
+el('lookup').addEventListener('click',function(){
+  var c=el('code').value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(c.length!==10){setStatus(t('f_unknown'),'bad');return;}
+  fetch('/api/feedback?id='+c,{cache:'no-store'}).then(function(r){
+    if(!r.ok){setStatus(t('f_unknown'),'bad');return;}
+    setStatus('');remember(c);el('code').value='';refresh();
+  }).catch(function(){setStatus(t('f_error'),'bad');});
+});
+
+refresh();
+})();
+</script>
+</body>
+</html>

@@ -30,8 +30,10 @@ function parseWheel(text) {
   }
   return out.length >= 6 && out.length <= 32 ? out : null;
 }
-function wheelToText(w) {
-  return w.map(function (x) { return x === 'B' ? 'BANKRUPT' : x === 'P' ? 'PASS' : String(x); }).join('\n');
+/* lang: 'it' scrive BANCAROTTA e PASSA, altrimenti BANKRUPT e PASS (parseWheel li capisce entrambi) */
+function wheelToText(w, lang) {
+  var b = lang === 'it' ? 'BANCAROTTA' : 'BANKRUPT', p = lang === 'it' ? 'PASSA' : 'PASS';
+  return w.map(function (x) { return x === 'B' ? b : x === 'P' ? p : String(x); }).join('\n');
 }
 
 function newGame(players, opts) {

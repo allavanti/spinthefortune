@@ -4,6 +4,8 @@ import { onRequestPost as room } from '../functions/api/room.js';
 import { onRequestPost as state } from '../functions/api/state.js';
 import { onRequestGet as screen } from '../functions/api/screen.js';
 import { onRequestGet as adminStats } from '../functions/api/admin/stats.js';
+import { onRequestPost as fbPost, onRequestGet as fbGet } from '../functions/api/feedback.js';
+import { onRequestGet as admList, onRequestPost as admAct } from '../functions/api/admin/messages.js';
 
 const env = { DB: fakeD1() };
 const call = (fn, url, init = {}) =>
@@ -110,5 +112,40 @@ assert.equal(a.s, 200); assert.equal(a.b.rooms_total, 1); assert.ok(a.b.rows.som
 env.ADMIN_TOKEN = 'Ab!9#xY_k$2@qZ+p'; // 16 caratteri con simboli
 assert.equal((await adm('Ab!9#xY_k$2@qZ+p')).s, 200);
 t('statistiche admin');
+
+// domande e suggerimenti
+const ADM = 'Ab!9#xY_k$2@qZ+p';
+const fbp = (body, ip = '5.5.5.5') => fbPost({ request: new Request('http://x/api/feedback', { method: 'POST', body: JSON.stringify(body), headers: { 'CF-Connecting-IP': ip } }), env }).then(async (r) => ({ s: r.status, b: await r.json() }));
+const fbg = (id) => fbGet({ request: new Request('http://x/api/feedback?id=' + id, { headers: { 'CF-Connecting-IP': '6.6.6.6' } }), env }).then(async (r) => ({ s: r.status, b: await r.json() }));
+const al = (status) => admList({ request: new Request('http://x/api/admin/messages?status=' + status, { headers: { Authorization: 'Bearer ' + ADM } }), env }).then(async (r) => ({ s: r.status, b: await r.json() }));
+const aa = (body, tok = ADM) => admAct({ request: new Request('http://x/api/admin/messages', { method: 'POST', body: JSON.stringify(body), headers: { Authorization: 'Bearer ' + tok } }), env }).then(async (r) => ({ s: r.status, b: await r.json() }));
+
+assert.equal((await fbp({ kind: 'question', text: 'ok' })).s, 400);                     // troppo corto
+assert.equal((await fbp({ kind: 'question', text: 'x'.repeat(1600) })).s, 400);         // troppo lungo
+assert.equal((await fbp({ text: 'Come si usa la ruota?', email: 'non-una-mail' })).s, 400);
+const trap = await fbp({ text: 'sono un robot spam', hp: 'http://spam' });               // honeypot
+assert.equal(trap.s, 200); assert.equal(env.DB._db.prepare('SELECT COUNT(*) n FROM messages').get().n, 0); t('feedback: validazione e honeypot');
+const f1 = await fbp({ kind: 'suggestion', text: 'Vorrei una manche finale.\nGrazie!', email: 'mario@example.com', lang: 'it' });
+assert.equal(f1.s, 200); assert.match(f1.b.id, /^[A-Z2-9]{10}$/);
+let g1 = await fbg(f1.b.id); assert.equal(g1.s, 200); assert.equal(g1.b.status, 'open'); assert.equal(g1.b.reply, ''); assert.equal(g1.b.kind, 'suggestion');
+assert.ok(!('email' in g1.b)); assert.ok(g1.b.text.includes('\n')); t('feedback: invio e lettura senza email');
+assert.equal((await fbg('ZZZZZZZZZZ')).s, 404); assert.equal((await fbg('abc')).s, 400); t('feedback: codici sconosciuti');
+assert.equal((await al('open')).s, 200);
+env.ADMIN_TOKEN = ADM;
+let l1 = await al('open'); assert.equal(l1.b.open, 1); assert.equal(l1.b.rows[0].email, 'mario@example.com'); assert.equal(l1.b.rows[0].lang, 'it'); t('admin: elenco con email');
+const noadm = await admList({ request: new Request('http://x/api/admin/messages'), env }); assert.equal(noadm.status, 401);
+assert.equal((await aa({ id: f1.b.id, action: 'reply', reply: 'Buona idea, la prevediamo.' }, 'sbagliatosbagliato1')).s, 401); t('admin: protetto');
+assert.equal((await aa({ id: f1.b.id, action: 'reply', reply: '   ' })).s, 400);
+assert.equal((await aa({ id: 'ZZZZZZZZZZ', action: 'reply', reply: 'x' })).s, 404);
+assert.equal((await aa({ id: f1.b.id, action: 'reply', reply: 'Buona idea, la prevediamo.' })).s, 200);
+g1 = await fbg(f1.b.id); assert.equal(g1.b.status, 'answered'); assert.equal(g1.b.reply, 'Buona idea, la prevediamo.'); assert.ok(g1.b.replied > 0);
+l1 = await al('open'); assert.equal(l1.b.open, 0); assert.equal(l1.b.answered, 1);
+assert.equal((await al('answered')).b.rows.length, 1); assert.equal((await al('all')).b.rows.length, 1); t('admin: risposta visibile all\'utente');
+assert.equal((await aa({ id: f1.b.id, action: 'reopen' })).s, 200); assert.equal((await al('open')).b.rows.length, 1);
+assert.equal((await aa({ id: f1.b.id, action: 'delete' })).s, 200); assert.equal((await fbg(f1.b.id)).s, 404); t('admin: riapri ed elimina');
+// limite: 5 messaggi all'ora per rete
+let lim; for (let i = 0; i < 6; i++) lim = await fbp({ text: 'domanda numero ' + i + ' lunga abbastanza' }, '7.7.7.7');
+assert.equal(lim.s, 429); t('feedback: limite per rete');
+assert.ok(stat('feedback_suggestion') === 1 && stat('feedback_question') >= 1); t('feedback: contatori');
 
 console.log(`\n${ok} test passati`);

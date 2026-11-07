@@ -24,3 +24,12 @@ CREATE TABLE IF NOT EXISTS ratelimit (
   k TEXT NOT NULL, win INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 0, exp INTEGER NOT NULL,
   PRIMARY KEY (k, win)
 );
+
+-- Domande e suggerimenti degli utenti, con la risposta dell'amministratore.
+-- L'id e' il codice della richiesta: chi lo conosce puo' leggere la risposta (l'email non si mostra mai).
+CREATE TABLE IF NOT EXISTS messages (
+  id TEXT PRIMARY KEY, kind TEXT NOT NULL, text TEXT NOT NULL, email TEXT NOT NULL DEFAULT '',
+  lang TEXT NOT NULL DEFAULT 'en', country TEXT NOT NULL DEFAULT '', created INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open', reply TEXT NOT NULL DEFAULT '', replied INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS messages_status ON messages(status, created);
