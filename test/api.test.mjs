@@ -80,6 +80,8 @@ env.ADMIN_TOKEN = 'segreto-lungo-1234567';
 assert.equal((await adm()).s, 401); assert.equal((await adm('sbagliato-sbagliato-1')).s, 401);
 const a = await adm('segreto-lungo-1234567');
 assert.equal(a.s, 200); assert.equal(a.b.rooms_total, 1); assert.ok(a.b.rows.some((r) => r.name === 'room_created' && r.n === 1 && r.lang === 'it'));
+env.ADMIN_TOKEN = 'Ab!9#xY_k$2@qZ+p'; // 16 caratteri con simboli
+assert.equal((await adm('Ab!9#xY_k$2@qZ+p')).s, 200);
 t('statistiche admin');
 
 console.log(`\n${ok} test passati`);

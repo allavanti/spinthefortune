@@ -1,7 +1,7 @@
 // GET /api/admin/stats?days=30 (Authorization: Bearer ADMIN_TOKEN) -> contatori aggregati.
 // Serve la variabile segreta ADMIN_TOKEN (almeno 16 caratteri) nelle impostazioni del progetto.
 import { ensureSchema, now, sha256Hex, allow } from '../../../lib/db.js';
-import { json, bearer, ipKey } from '../../../lib/http.js';
+import { json, ipKey } from '../../../lib/http.js';
 
 function uguali(a, b) {
   if (a.length !== b.length) return false;
@@ -16,7 +16,9 @@ export async function onRequestGet({ request, env }) {
   if (!atteso || atteso.length < 16) return json({ error: 'ADMIN_TOKEN non configurato' }, 503);
   try {
     await ensureSchema(env.DB);
-    const dato = bearer(request);
+    // il token dell'admin puo' avere qualsiasi carattere: non uso bearer(), che accetta solo i token delle stanze
+    const m = /^Bearer (.+)$/.exec(request.headers.get('Authorization') || '');
+    const dato = m ? m[1].trim() : '';
     if (!dato || !uguali(dato, atteso)) {
       const ok = await allow(env.DB, await ipKey(request, sha256Hex, 'admin'), 10, 600);
       return json({ error: ok ? 'non autorizzato' : 'troppi tentativi' }, ok ? 401 : 429);
