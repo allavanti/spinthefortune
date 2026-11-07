@@ -240,6 +240,7 @@ function drawPanels(){
   (state.called||[]).forEach(function(c){if(c.r==='hit')hits+=c.l;else miss+=c.l;});
   hitEl.textContent=hits||' ';
   missEl.textContent=miss||' ';
+  missEl.parentNode.style.visibility=state.hm?'hidden':'';
 
   var pl=state.players||[],game=state.game||null;
   panelPlayers.hidden=!pl.length;

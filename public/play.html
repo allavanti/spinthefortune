@@ -77,6 +77,7 @@ dialog label{display:block;margin:12px 0 4px;font-size:13px;opacity:.85}
 dialog input[type=number]{width:8em;background:#050c24;color:#fff;border:2px solid #2a3d7c;border-radius:8px;padding:8px;font:14px ui-monospace,Consolas,monospace}
 dialog .chk{display:flex;gap:10px;align-items:center;opacity:1;margin-top:14px;font-size:14px}
 dialog .chk input{width:20px;height:20px}
+dialog .gamehint2{margin:4px 0 0;font-size:13px;opacity:.75}
 dialog textarea{
   width:100%;background:#050c24;color:#fff;border:2px solid #2a3d7c;border-radius:8px;
   padding:10px;font:14px/1.5 ui-monospace,Consolas,monospace;
@@ -142,6 +143,8 @@ button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid #f
   <textarea id="txt" spellcheck="false"></textarea>
   <label for="ptxt" data-i18n="players_label">Players</label>
   <textarea id="ptxt" spellcheck="false" data-i18n-ph="players_ph"></textarea>
+  <label class="chk"><input type="checkbox" id="gMiss"><span data-i18n="show_miss_label">Show wrong letters on the screen</span></label>
+  <p class="gamehint2" data-i18n="show_miss_hint"></p>
   <label class="chk"><input type="checkbox" id="gOn"><span data-i18n="scoring_label">Use scores and the wheel</span></label>
   <label for="gVowel" data-i18n="vowel_cost_label">Vowel cost</label>
   <input type="number" id="gVowel" min="0" max="9999" step="50">
@@ -186,6 +189,7 @@ function parsePlayers(text){
   return text.split(/\r?\n/).map(function(s){return s.trim();}).filter(function(s){return s;}).slice(0,12);
 }
 function cur(){return G.phrases[G.idx]||null;}
+function hidMiss(){return !gameSettings().showMiss;}
 function calledAs(L){
   for(var n=0;n<G.called.length;n++){if(G.called[n].l===L)return G.called[n].r;}
   return '';
@@ -225,7 +229,7 @@ function gameSettings(){
   try{s=JSON.parse(get(K.game)||'null');}catch(e){}
   s=s||{};
   var w=RU.parseWheel(s.wheelText);
-  return {on:s.on!==false,vowel:typeof s.vowel==='number'?s.vowel:250,wheel:w||RU.DEFAULT_WHEEL.slice()};
+  return {on:s.on!==false,vowel:typeof s.vowel==='number'?s.vowel:250,wheel:w||RU.DEFAULT_WHEEL.slice(),showMiss:s.showMiss!==false};
 }
 function applyGameSettings(keep){
   var gs=gameSettings(),old=G.game;
@@ -268,7 +272,7 @@ function buildState(){
   return {
     v:1,phrase:p.text,cat:p.cat,
     revealed:Object.keys(G.revealed).map(Number),
-    called:G.called,players:G.players,turn:G.turn,ev:G.ev,game:G.game
+    called:G.called,players:G.players,turn:G.turn,ev:G.ev,game:G.game,hm:!gameSettings().showMiss
   };
 }
 var sending=false,dirty=false;
@@ -338,7 +342,7 @@ function drawKeys(){
     var r=calledAs(L);
     ks[n].classList.remove('hit','miss');
     if(r)ks[n].classList.add(r);
-    ks[n].disabled=!!r||locked()||!RU.canCall(G,L);
+    ks[n].disabled=(r&&!(r==='miss'&&hidMiss()))||locked()||!RU.canCall(G,L);
   }
 }
 function drawMeta(){
@@ -409,7 +413,14 @@ function changed(){
 /* ---------- azioni di gioco ---------- */
 function guess(L){
   var p=cur();
-  if(!p||calledAs(L)||locked()||!RU.canCall(G,L))return;
+  var was=calledAs(L);
+  if(!p||(was&&!(was==='miss'&&hidMiss()))||locked()||!RU.canCall(G,L))return;
+  if(was==='miss'){
+    RU.call(G,L,0);
+    changed();
+    toast(t('repeat_letter',{l:L}));
+    return;
+  }
   var n=0;
   for(var i=0;i<p.text.length;i++){
     var ch=p.text.charAt(i);
@@ -516,6 +527,7 @@ el('bSet').addEventListener('click',function(){
   el('ptxt').value=get(K.conc);
   var gs=gameSettings();
   el('gOn').checked=gs.on;
+  el('gMiss').checked=gs.showMiss;
   el('gVowel').value=gs.vowel;
   el('gWheel').value=RU.wheelToText(gs.wheel,I.lang);
   dlg.showModal();
@@ -541,7 +553,7 @@ el('dSave').addEventListener('click',function(){
   if(!wheel){window.alert(t('invalid_wheel'));return;}
   var vowel=parseInt(el('gVowel').value,10);
   if(!(vowel>=0&&vowel<=9999))vowel=250;
-  set(K.game,JSON.stringify({on:el('gOn').checked,vowel:vowel,wheelText:RU.wheelToText(wheel,I.lang)}));
+  set(K.game,JSON.stringify({on:el('gOn').checked,showMiss:el('gMiss').checked,vowel:vowel,wheelText:RU.wheelToText(wheel,I.lang)}));
   set(K.frasi,el('txt').value);
   set(K.conc,el('ptxt').value);
   G.phrases=list;

@@ -148,4 +148,11 @@ let lim; for (let i = 0; i < 6; i++) lim = await fbp({ text: 'domanda numero ' +
 assert.equal(lim.s, 429); t('feedback: limite per rete');
 assert.ok(stat('feedback_suggestion') === 1 && stat('feedback_question') >= 1); t('feedback: contatori');
 
+// lettere sbagliate nascoste: il campo hm arriva allo schermo solo se vero
+const hr = await post(room, '/api/room', { lang: 'it' });
+let hs = await post(state, '/api/state', S({ hm: true }), hr.b.token); assert.equal(hs.s, 200);
+let hg = await call(screen, `/api/screen?c=${hr.b.code}&first=1`); assert.equal(hg.b.view.hm, true); t('hm: nascoste inviate allo schermo');
+await post(state, '/api/state', S({ hm: 'si' }), hr.b.token);
+hg = await call(screen, `/api/screen?c=${hr.b.code}&first=1`); assert.equal(hg.b.view.hm, false); t('hm: valore non booleano ignorato');
+
 console.log(`\n${ok} test passati`);
