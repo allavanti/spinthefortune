@@ -42,6 +42,10 @@ export async function onRequestPost({ request, env }) {
         }
       } else if (t === 'reveal') {
         stats.push(statInc(env.DB, 'phrase_revealed', room.lang, room.country));
+      } else if (t === 'spin' || t === 'bankrupt' || t === 'pass') {
+        stats.push(statInc(env.DB, 'wheel_spin', room.lang, room.country));
+      } else if (t === 'solved') {
+        stats.push(statInc(env.DB, 'phrase_solved', room.lang, room.country));
       }
     }
 

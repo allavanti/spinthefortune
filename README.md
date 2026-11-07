@@ -7,7 +7,8 @@ Cloudflare Pages + Pages Functions + D1. Nessun account: le stanze sono anonime.
 
 - `public/`: sito statico. `index.html` (EN) e `it/index.html` (IT) sono le landing; `play.html` e `screen.html` sono l'app (conduttore e schermo); `admin.html` mostra i contatori.
 - `functions/api/`: `room.js` (crea stanza), `state.js` (il conduttore invia lo stato), `screen.js` (lo schermo legge lo stato con le lettere nascoste mascherate), `admin/stats.js` (contatori).
-- `lib/`: regole di gioco (`game.js`), database (`db.js`), utilita' HTTP (`http.js`).
+- `lib/`: validazione dello stato (`game.js`), database (`db.js`), utilita' HTTP (`http.js`).
+- `public/js/`: tabellone (`board.js`), regole con ruota e punteggi (`rules.js`), suoni (`sound.js`), traduzioni EN/IT (`i18n.js`).
 - `migrations/0001_init.sql`: schema di riferimento. Le API lo creano da sole al primo uso.
 - `test/`: test delle API (`api.test.mjs`, usa `node:sqlite` al posto di D1) e prova nel browser (`e2e.py`, richiede Playwright).
 
@@ -29,9 +30,18 @@ Da qui ogni push su `main` ripubblica il sito.
 - Frasi e concorrenti restano nel browser del conduttore. Al server va solo la frase corrente.
 - Le stanze ferme da 24 ore vengono cancellate. Lo schermo interroga il server ogni secondo, poi ogni 2 e 4 secondi se non cambia nulla.
 
+## Punteggi, ruota e suoni
+
+- I punteggi si attivano quando ci sono i nomi dei concorrenti (Impostazioni, voce "Usa punteggi e ruota"). Senza nomi il gioco resta libero come prima.
+- Regole: Gira, il valore dello spicchio vale per ogni consonante trovata, vocale a pagamento (costo configurabile, 250 predefinito), Bancarotta azzera i punti della manche, Passa cede il turno, Risolta porta i punti della manche nel totale.
+- Gli spicchi della ruota si cambiano nelle Impostazioni (da 6 a 32 righe: numeri, BANKRUPT, PASS).
+- La ruota gira sullo schermo (circa 5 secondi, poi il risultato). Il conduttore e' bloccato per 6,5 secondi mentre gira.
+- Suoni sintetizzati nel browser (WebAudio, nessun file). Il browser li permette solo dopo un click: lo schermo mostra "Clicca per attivare l'audio"; il tasto M silenzia.
+- Il tabellone e' mascherato dal server: lo schermo confronta le frasi tenendo conto delle lettere nascoste (vedi `samePuzzle` in `screen.html`).
+
 ## Contatori anonimi
 
-Tabella `stats`: giorno, evento, lingua, paese, totale. Eventi: `room_created`, `screen_connected`, `game_started`, `letter_hit`, `letter_miss`, `phrase_completed`, `phrase_revealed`. Nessun identificativo di persona. I limiti di richieste usano un hash della rete che scade dopo poco.
+Tabella `stats`: giorno, evento, lingua, paese, totale. Eventi: `room_created`, `screen_connected`, `game_started`, `letter_hit`, `letter_miss`, `phrase_completed`, `phrase_revealed`, `wheel_spin`, `phrase_solved`. Nessun identificativo di persona. I limiti di richieste usano un hash della rete che scade dopo poco.
 
 ## Prima del lancio pubblico (serve un dominio)
 
@@ -43,7 +53,10 @@ Tabella `stats`: giorno, evento, lingua, paese, totale. Eventi: `room_created`, 
 
 ```
 node --no-warnings test/api.test.mjs
+node test/rules.test.mjs
 python3 test/e2e.py
+python3 test/e2e_host.py
+python3 test/e2e_game.py
 ```
 
 ## Limiti noti

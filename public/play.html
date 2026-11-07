@@ -68,18 +68,28 @@ body.ctl{
 }
 #toast.on{opacity:1}
 dialog{
-  width:min(560px,94vw);border:2px solid #f5c542;border-radius:14px;
+  width:min(560px,94vw);max-height:92vh;overflow:auto;border:2px solid #f5c542;border-radius:14px;
   background:#0b1636;color:#fff;padding:16px;
 }
 dialog::backdrop{background:rgba(0,0,0,.7)}
 dialog h2{margin:0 0 6px;font-size:18px;color:#f5c542}
 dialog label{display:block;margin:12px 0 4px;font-size:13px;opacity:.85}
+dialog input[type=number]{width:8em;background:#050c24;color:#fff;border:2px solid #2a3d7c;border-radius:8px;padding:8px;font:14px ui-monospace,Consolas,monospace}
+dialog .chk{display:flex;gap:10px;align-items:center;opacity:1;margin-top:14px;font-size:14px}
+dialog .chk input{width:20px;height:20px}
 dialog textarea{
   width:100%;background:#050c24;color:#fff;border:2px solid #2a3d7c;border-radius:8px;
   padding:10px;font:14px/1.5 ui-monospace,Consolas,monospace;
 }
 dialog textarea{height:24vh;resize:vertical}
 #ptxt{height:12vh}
+#gWheel{height:16vh}
+.gamehint{padding:6px 14px;font-size:15px;font-weight:700;color:#ffd84a;min-height:1.6em}
+.gamehint[hidden]{display:none}
+.chip small{opacity:.75;font-weight:600;margin-left:4px}
+.actions.game{grid-template-columns:2fr 1fr 1fr}
+.actions[hidden]{display:none}
+.btn:disabled,.key:disabled{opacity:.4}
 .row{display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap}
 .row .grp{display:flex;gap:8px;margin-left:auto}
 button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid #ffd84a;outline-offset:2px}
@@ -107,6 +117,12 @@ button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid #f
 <div class="pv" id="pv"><div class="board clear" id="board"></div></div>
 <div class="meta"><span id="catTxt"></span><span class="n" id="counter"></span></div>
 <div class="chips" id="chips"></div>
+<div class="gamehint" id="hint" role="status" hidden></div>
+<div class="actions game" id="gameBtns" hidden>
+  <button class="btn primary" id="bSpin" type="button" data-i18n="spin">Spin</button>
+  <button class="btn" id="bSolved" type="button" data-i18n="solved_btn">Solved</button>
+  <button class="btn" id="bWrong" type="button" data-i18n="wrong_btn">Wrong</button>
+</div>
 <div id="keys"></div>
 
 <div class="actions">
@@ -126,6 +142,12 @@ button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid #f
   <textarea id="txt" spellcheck="false"></textarea>
   <label for="ptxt" data-i18n="players_label">Players</label>
   <textarea id="ptxt" spellcheck="false" data-i18n-ph="players_ph"></textarea>
+  <label class="chk"><input type="checkbox" id="gOn"><span data-i18n="scoring_label">Use scores and the wheel</span></label>
+  <label for="gVowel" data-i18n="vowel_cost_label">Vowel cost</label>
+  <input type="number" id="gVowel" min="0" max="9999" step="50">
+  <label for="gWheel" data-i18n="wheel_label">Wheel segments</label>
+  <textarea id="gWheel" spellcheck="false"></textarea>
+  <div class="row"><button class="btn small" id="dScores" type="button" data-i18n="reset_scores">Reset all scores</button></div>
   <div class="row">
     <button class="btn small" id="dNew" type="button" data-i18n="new_room">New room and code</button>
     <div class="grp">
@@ -136,23 +158,25 @@ button:focus-visible,a:focus-visible,textarea:focus-visible{outline:3px solid #f
 </dialog>
 
 <script src="/js/board.js"></script>
+<script src="/js/rules.js"></script>
 <script src="/js/i18n.js"></script>
 <script>
 (function(){
 'use strict';
 
-var R=window.RuotaBoard, I=window.I18N, t=I.t;
+var R=window.RuotaBoard, RU=window.Rules, I=window.I18N, t=I.t;
 document.title=t('play_title');
 I.apply();
 
-var K={frasi:'stf-phrases-v1',conc:'stf-players-v1',partita:'stf-game-v1',room:'stf-room-v1'};
+var K={frasi:'stf-phrases-v1',conc:'stf-players-v1',partita:'stf-game-v1',room:'stf-room-v1',game:'stf-scoring-v1'};
+var SPIN_MS=6500;   // la ruota sulla TV gira circa 5,5 secondi
 
 function el(id){return document.getElementById(id);}
 var board=el('board'),pv=el('pv'),dlg=el('dlg'),toastEl=el('toast');
 var toastTimer=null;
 
 /* stato di gioco: vive qui, lo schermo riceve dal server solo la copia mascherata */
-var G={phrases:[],idx:0,called:[],revealed:{},players:[],turn:0,ev:{seq:0,t:''}};
+var G={phrases:[],idx:0,called:[],revealed:{},players:[],turn:0,ev:{seq:0,t:''},game:null};
 
 /* ---------- memoria del browser ---------- */
 function get(k){try{return localStorage.getItem(k)||'';}catch(e){return '';}}
@@ -170,7 +194,7 @@ function calledAs(L){
 function savePartita(){
   var p=cur();
   set(K.partita,JSON.stringify({
-    idx:G.idx,text:p?p.text:'',called:G.called,revealed:G.revealed,turn:G.turn,seq:G.ev.seq
+    idx:G.idx,text:p?p.text:'',called:G.called,revealed:G.revealed,turn:G.turn,seq:G.ev.seq,game:G.game
   }));
 }
 function loadPartita(){
@@ -185,7 +209,30 @@ function loadPartita(){
     G.turn=s.turn||0;
     G.ev={seq:s.seq||0,t:''};
     if(G.turn>=G.players.length)G.turn=0;
+    if(s.game&&G.game&&Array.isArray(s.game.scores)){
+      G.game.scores=s.game.scores.slice(0,G.players.length).map(function(x){return {r:+x.r||0,t:+x.t||0};});
+      RU.fitPlayers(G,G.players.length);
+      if(['spin','letter','choose'].indexOf(s.game.phase)>=0)G.game.phase=s.game.phase;
+      G.game.val=+s.game.val||0;
+      if(s.game.spin&&typeof s.game.spin.seq==='number')G.game.spin=s.game.spin;
+    }
   }catch(e){}
+}
+
+/* ---------- punteggi e ruota: impostazioni ---------- */
+function gameSettings(){
+  var s=null;
+  try{s=JSON.parse(get(K.game)||'null');}catch(e){}
+  s=s||{};
+  var w=RU.parseWheel(s.wheelText);
+  return {on:s.on!==false,vowel:typeof s.vowel==='number'?s.vowel:250,wheel:w||RU.DEFAULT_WHEEL.slice()};
+}
+function applyGameSettings(keep){
+  var gs=gameSettings(),old=G.game;
+  if(!gs.on||!G.players.length){G.game=null;return;}
+  G.game=RU.newGame(G.players.length,{vowel:gs.vowel,wheel:gs.wheel});
+  if(old&&keep){G.game.scores=old.scores;G.game.phase=old.phase;G.game.val=old.val;G.game.spin=old.spin;}
+  RU.fitPlayers(G,G.players.length);
 }
 
 /* ---------- stanza (codice per lo schermo) ---------- */
@@ -221,7 +268,7 @@ function buildState(){
   return {
     v:1,phrase:p.text,cat:p.cat,
     revealed:Object.keys(G.revealed).map(Number),
-    called:G.called,players:G.players,turn:G.turn,ev:G.ev
+    called:G.called,players:G.players,turn:G.turn,ev:G.ev,game:G.game
   };
 }
 var sending=false,dirty=false;
@@ -291,7 +338,7 @@ function drawKeys(){
     var r=calledAs(L);
     ks[n].classList.remove('hit','miss');
     if(r)ks[n].classList.add(r);
-    ks[n].disabled=!!r;
+    ks[n].disabled=!!r||locked()||!RU.canCall(G,L);
   }
 }
 function drawMeta(){
@@ -307,7 +354,12 @@ function drawChips(){
     b.type='button';
     b.className='chip'+(n===G.turn?' on':'');
     b.textContent=name;
-    b.addEventListener('click',function(){G.turn=n;changed();});
+    if(RU.active(G)){
+      var sc=G.game.scores[n],sm=document.createElement('small');
+      sm.textContent=sc.r+(sc.t?' ('+sc.t+')':'');
+      b.appendChild(sm);
+    }
+    b.addEventListener('click',function(){if(locked())return;RU.setTurn(G,n);changed();});
     box.appendChild(b);
   });
 }
@@ -322,30 +374,54 @@ function setStatus(on,text){
   el('status').textContent=text;
 }
 
-function changed(){
-  savePartita();
+/* mentre la ruota gira sulla TV il conduttore non puo' chiamare lettere */
+var lockUntil=0,lockTimer=null;
+function locked(){return Date.now()<lockUntil;}
+
+function drawHint(){
+  var on=RU.active(G);
+  el('hint').hidden=!on;
+  el('gameBtns').hidden=!on;
+  if(!on)return;
+  var name=G.players[G.turn],gm=G.game,msg;
+  if(locked())msg=t('spinning');
+  else if(gm.phase==='letter')msg=t('hint_letter',{name:name,val:gm.val});
+  else if(gm.phase==='choose')msg=RU.canBuyVowel(G)?t('hint_choose',{name:name,cost:gm.vowel}):t('hint_choose_free',{name:name});
+  else msg=t('hint_spin',{name:name});
+  el('hint').textContent=msg;
+  el('bSpin').disabled=locked()||!RU.canSpin(G);
+  el('bSolved').disabled=locked()||!RU.canSolve(G);
+  el('bWrong').disabled=locked()||!RU.canSolve(G);
+}
+function redraw(){
   drawPreview();
   drawKeys();
   drawMeta();
   drawChips();
+  drawHint();
+}
+function changed(){
+  savePartita();
+  redraw();
   push();
 }
 
 /* ---------- azioni di gioco ---------- */
 function guess(L){
   var p=cur();
-  if(!p||calledAs(L))return;
+  if(!p||calledAs(L)||locked()||!RU.canCall(G,L))return;
   var n=0;
   for(var i=0;i<p.text.length;i++){
     var ch=p.text.charAt(i);
     if(R.isLetter(ch)&&R.norm(ch)===L){G.revealed[i]=true;n++;}
   }
   G.called.push({l:L,r:n?'hit':'miss'});
-  G.ev={seq:G.ev.seq+1,t:n?'hit':'miss',l:L,n:n};
+  RU.call(G,L,n);
   changed();
-  toast(n?t('letter_count',{n:n,l:L}):t('no_letter',{l:L}));
+  if(n&&G.ev.pts)toast(t('pts_line',{n:n,l:L,pts:G.ev.pts}));
+  else toast(n?t('letter_count',{n:n,l:L}):t('no_letter',{l:L}));
 }
-function revealAll(){
+function revealLetters(){
   var p=cur();
   if(!p)return;
   for(var i=0;i<p.text.length;i++){
@@ -356,19 +432,50 @@ function revealAll(){
       if(!calledAs(L))G.called.push({l:L,r:'hit'});
     }
   }
+}
+function revealAll(){
+  revealLetters();
   G.ev={seq:G.ev.seq+1,t:'reveal'};
   changed();
 }
-function resetPhrase(){
+function doSolved(){
+  if(locked()||!RU.canSolve(G))return;
+  revealLetters();
+  RU.solved(G);
+  changed();
+}
+function doWrong(){
+  if(locked()||!RU.canSolve(G))return;
+  RU.wrong(G);
+  changed();
+}
+function doSpin(){
+  if(locked()||!RU.canSpin(G))return;
+  RU.spin(G,Math.random);
+  lockUntil=Date.now()+SPIN_MS;
+  changed();
+  clearTimeout(lockTimer);
+  lockTimer=setTimeout(function(){
+    lockUntil=0;
+    redraw();
+    var e=G.ev;
+    if(e.t==='spin')toast(t('spun_value',{v:e.v}));
+    else if(e.t==='bankrupt')toast(t('wheel_bankrupt'));
+    else if(e.t==='pass')toast(t('wheel_pass'));
+  },SPIN_MS);
+}
+function resetPhrase(advance){
+  lockUntil=0;
   G.called=[];
   G.revealed={};
+  RU.newRound(G,advance===true);
   G.ev={seq:G.ev.seq+1,t:'reset'};
   changed();
 }
 function goTo(n){
   if(!G.phrases.length)return;
   G.idx=((n%G.phrases.length)+G.phrases.length)%G.phrases.length;
-  resetPhrase();
+  resetPhrase(true);
 }
 function randomPhrase(){
   if(G.phrases.length<2)return;
@@ -377,8 +484,8 @@ function randomPhrase(){
   goTo(n);
 }
 function nextTurn(){
-  if(!G.players.length)return;
-  G.turn=(G.turn+1)%G.players.length;
+  if(!G.players.length||locked())return;
+  RU.setTurn(G,(G.turn+1)%G.players.length);
   changed();
 }
 
@@ -387,7 +494,10 @@ el('bPrev').addEventListener('click',function(){goTo(G.idx-1);});
 el('bNext').addEventListener('click',function(){goTo(G.idx+1);});
 el('bRand').addEventListener('click',randomPhrase);
 el('bReveal').addEventListener('click',revealAll);
-el('bReset').addEventListener('click',resetPhrase);
+el('bReset').addEventListener('click',function(){resetPhrase(false);});
+el('bSpin').addEventListener('click',doSpin);
+el('bSolved').addEventListener('click',doSolved);
+el('bWrong').addEventListener('click',doWrong);
 el('bTurn').addEventListener('click',nextTurn);
 
 el('bLang').textContent=I.lang==='it'?'EN':'IT';
@@ -404,9 +514,19 @@ el('bCopy').addEventListener('click',function(){
 el('bSet').addEventListener('click',function(){
   el('txt').value=get(K.frasi)||t('default_phrases');
   el('ptxt').value=get(K.conc);
+  var gs=gameSettings();
+  el('gOn').checked=gs.on;
+  el('gVowel').value=gs.vowel;
+  el('gWheel').value=RU.wheelToText(gs.wheel);
   dlg.showModal();
 });
 el('dCancel').addEventListener('click',function(){dlg.close();});
+el('dScores').addEventListener('click',function(){
+  if(!window.confirm(t('reset_scores_confirm')))return;
+  RU.resetScores(G);
+  dlg.close();
+  changed();
+});
 el('dNew').addEventListener('click',function(){
   if(!window.confirm(t('new_room_confirm')))return;
   room=null;set(K.room,'');
@@ -417,11 +537,18 @@ el('dNew').addEventListener('click',function(){
 el('dSave').addEventListener('click',function(){
   var list=R.parsePhrases(el('txt').value);
   if(!list.length){window.alert(t('no_valid_phrase'));return;}
+  var wheel=RU.parseWheel(el('gWheel').value);
+  if(!wheel){window.alert(t('invalid_wheel'));return;}
+  var vowel=parseInt(el('gVowel').value,10);
+  if(!(vowel>=0&&vowel<=9999))vowel=250;
+  set(K.game,JSON.stringify({on:el('gOn').checked,vowel:vowel,wheelText:RU.wheelToText(wheel)}));
   set(K.frasi,el('txt').value);
   set(K.conc,el('ptxt').value);
   G.phrases=list;
   G.players=parsePlayers(el('ptxt').value);
-  G.idx=0;G.called=[];G.revealed={};G.turn=0;
+  G.idx=0;G.called=[];G.revealed={};G.turn=0;lockUntil=0;
+  applyGameSettings(true);
+  RU.newRound(G,false);
   G.ev={seq:G.ev.seq+1,t:'reset'};
   dlg.close();
   changed();
@@ -450,6 +577,7 @@ setStatus(false,t('connecting'));
 G.phrases=R.parsePhrases(get(K.frasi)||t('default_phrases'));
 if(!G.phrases.length)G.phrases=R.parsePhrases(t('default_phrases'));
 G.players=parsePlayers(get(K.conc));
+applyGameSettings(false);
 loadPartita();
 buildKeys();
 drawRoom();

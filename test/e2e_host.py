@@ -1,0 +1,48 @@
+import subprocess, sys
+from playwright.sync_api import sync_playwright
+SHOT='/tmp/claude-0/-home-claude/6a1c637f-70df-54b9-aee2-ae921ccd0ab4/scratchpad'
+srv = subprocess.Popen(['node', '--no-warnings', 'test/dev-server.mjs', '8790'], stdout=subprocess.PIPE, text=True); srv.stdout.readline()
+fails = []
+def check(n, c):
+    print(('ok  ' if c else 'FAIL'), n)
+    if not c: fails.append(n)
+try:
+    with sync_playwright() as p:
+        b = p.chromium.launch(); errs = []
+        ctx = b.new_context(viewport={'width': 390, 'height': 900}, locale='en-US'); pg = ctx.new_page()
+        pg.on('pageerror', lambda e: errs.append(str(e)))
+        pg.on('dialog', lambda d: d.accept())
+        pg.goto('http://localhost:8790/play')
+        pg.wait_for_function("document.getElementById('status').textContent==='Screen is live'")
+        check('senza concorrenti: modalita libera', pg.is_hidden('#gameBtns') and not pg.is_disabled('.key[data-l=T]'))
+        pg.click('#bSet')
+        pg.fill('#ptxt', 'Anna\nBen'); pg.fill('#gWheel', '500\n500\n500\n500\n500\n500'); pg.fill('#gVowel', '250')
+        pg.click('#dSave')
+        check('suggerimento: gira', 'Anna: spin the wheel' in pg.inner_text('#hint'))
+        check('tasti disabilitati prima del giro', pg.is_disabled('.key[data-l=T]') and pg.is_disabled('.key[data-l=E]'))
+        check('Gira attivo, Risolta no', not pg.is_disabled('#bSpin') and pg.is_disabled('#bSolved'))
+        pg.click('#bSpin')
+        check('durante il giro: bloccato', 'Spinning' in pg.inner_text('#hint') and pg.is_disabled('#bSpin') and pg.is_disabled('.key[data-l=T]'))
+        pg.wait_for_function("document.getElementById('hint').textContent.includes('consonant')", timeout=9000)
+        check('dopo il giro: consonante a 500', '500 each' in pg.inner_text('#hint'))
+        check('consonanti attive, vocali no', not pg.is_disabled('.key[data-l=N]') and pg.is_disabled('.key[data-l=E]'))
+        pg.click('.key[data-l=N]')
+        check('5 N x 500 = 2500', '2500' in pg.inner_text('.chip.on'))
+        check('suggerimento: scegli', 'buy a vowel' in pg.inner_text('#hint'))
+        check('ora vocali attive e consonanti no', not pg.is_disabled('.key[data-l=E]') and pg.is_disabled('.key[data-l=T]'))
+        pg.click('.key[data-l=E]')
+        check('vocale: -250', '2250' in pg.inner_text('.chip.on'))
+        pg.screenshot(path=SHOT+'/e2e_host_game.png')
+        pg.click('#bSolved')
+        check('risolta: totale 2250', '(2250)' in pg.inner_text('.chip.on'))
+        pg.reload(); pg.wait_for_selector('.chip')
+        check('dopo ricarica: punteggi ricordati', '2250' in pg.inner_text('#chips'))
+        pg.click('#bSet'); pg.fill('#gWheel', '1,2,3'); pg.click('#dSave')
+        check('ruota non valida: resta aperto', pg.evaluate("document.getElementById('dlg').open"))
+        pg.click('#dCancel')
+        check('nessun errore JS', not errs)
+        if errs: print(errs)
+        b.close()
+finally:
+    srv.terminate()
+print('FALLITI:', fails or 'nessuno'); sys.exit(1 if fails else 0)
