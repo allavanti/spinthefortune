@@ -75,7 +75,7 @@ Test: `node test/i18n.test.mjs` (nessun testo inglese nella versione italiana e 
 
 ## Frasi pronte e frasi della community
 
-- Il catalogo curato sta in `public/data/phrases-it.json` e `phrases-en.json` (100 frasi per lingua, formato `{"c":"Categoria","t":"FRASE"}`): ogni lingua ha frasi e categorie solo nella propria lingua.
+- Il catalogo curato sta in `public/data/phrases-it.json` e `phrases-en.json` (120 frasi per lingua, frasi complete e non solo titoli, generate da `scripts/build_catalog.py`, formato `{"c":"Categoria","t":"FRASE"}`): ogni lingua ha frasi e categorie solo nella propria lingua.
 - Le frasi inviate dagli utenti (casella spenta di default nelle Impostazioni) finiscono nella tabella D1 `pool` come "da approvare". Si creano da sole come le altre tabelle.
 - In `/admin`, scheda "Frasi": si approva, rifiuta, modifica o elimina (anche in blocco). Solo le approvate escono da `GET /api/phrases?lang=it|en` e compaiono in "Frasi pronte". Con 3 segnalazioni una frase approvata torna "da approvare"; una frase rifiutata non viene riproposta.
 - Filtri automatici in `lib/phrases.js` (lunghezza, link, email, numeri lunghi, parole non ammesse): sono solo una prima barriera, la moderazione resta manuale.

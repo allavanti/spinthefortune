@@ -93,7 +93,7 @@ dialog textarea{height:24vh;resize:vertical}
 .btn:disabled,.key:disabled{opacity:.4}
 .row{display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:14px;flex-wrap:wrap}
 .row .grp{display:flex;gap:8px;margin-left:auto}
-#cat{width:100%;background:#050c24;color:#fff;border:2px solid #2a3d7c;border-radius:8px;padding:10px;font:15px system-ui,sans-serif}
+#cat,#diff{width:100%;background:#050c24;color:#fff;border:2px solid #2a3d7c;border-radius:8px;padding:10px;font:15px system-ui,sans-serif}
 #clist{margin:10px 0 0;max-height:46vh;overflow:auto;border-top:1px solid #2a3d7c}
 #clist label{display:flex;gap:10px;align-items:center;margin:0;padding:9px 2px;border-bottom:1px solid #1b2a5c;font-size:15px;opacity:1}
 #clist input{width:20px;height:20px;flex:none}
@@ -174,6 +174,7 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
   <h2 data-i18n="ready_title">Ready-made phrases</h2>
   <label for="cat" class="sr" style="position:absolute;left:-9999px" data-i18n="ready_title"></label>
   <select id="cat"></select>
+  <select id="diff" style="margin-top:8px"><option value="" data-i18n="diff_all"></option><option value="easy" data-i18n="diff_easy"></option><option value="medium" data-i18n="diff_medium"></option><option value="hard" data-i18n="diff_hard"></option></select>
   <div id="clist" role="group" aria-live="polite"></div>
   <p id="ccount"></p>
   <div class="row">
@@ -613,6 +614,12 @@ function loadCatalog(){
   });
   return catPromise;
 }
+/* difficolta' dalla lunghezza: facile fino a 30 lettere, media 31-38, difficile 39 e oltre */
+function level(text){
+  var n=0;
+  for(var i=0;i<text.length;i++){if(R.isLetter(text.charAt(i)))n++;}
+  return n<=30?'easy':n<=38?'medium':'hard';
+}
 function pickedCount(){return Object.keys(picked).length;}
 function drawCount(){el('ccount').textContent=t('ready_selected',{n:pickedCount()});}
 function drawCatalog(){
@@ -624,7 +631,8 @@ function drawCatalog(){
   cats.forEach(function(c){var op=document.createElement('option');op.value=c;op.textContent=c;sel.appendChild(op);});
   sel.value=cats.indexOf(keep)>=0?keep:'';
   box.innerHTML='';
-  var shown=catalog.filter(function(x){return !sel.value||x.c===sel.value;});
+  var dv=el('diff').value;
+  var shown=catalog.filter(function(x){return (!sel.value||x.c===sel.value)&&(!dv||level(x.t)===dv);});
   if(!shown.length){var p=document.createElement('p');p.textContent=t('ready_none');box.appendChild(p);}
   shown.forEach(function(x){
     var lb=document.createElement('label'),cb=document.createElement('input'),sp=document.createElement('span');
@@ -655,9 +663,10 @@ el('bReady').addEventListener('click',function(){
   loadCatalog().then(drawCatalog).catch(function(){el('clist').textContent=t('ready_error');});
 });
 el('cat').addEventListener('change',drawCatalog);
+el('diff').addEventListener('change',drawCatalog);
 el('cAll').addEventListener('click',function(){
-  var c=el('cat').value;
-  catalog.forEach(function(x){if(!c||x.c===c)picked[x.t]=x;});
+  var c=el('cat').value,dv=el('diff').value;
+  catalog.forEach(function(x){if((!c||x.c===c)&&(!dv||level(x.t)===dv))picked[x.t]=x;});
   drawCatalog();
 });
 el('cClose').addEventListener('click',function(){dlg2.close();});

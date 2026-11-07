@@ -13,18 +13,25 @@ def host(ctx, lang):
 try:
     with sync_playwright() as p:
         b = p.chromium.launch(); errs = []
-        for lang, loc, cats, title, other in (('it', 'it-IT', ['Cinema', 'Storia'], 'IL PADRINO', 'THE GODFATHER'), ('en', 'en-US', ['Movies', 'History'], 'THE GODFATHER', 'IL PADRINO')):
+        for lang, loc, cats, title, other in (('it', 'it-IT', ['Cinema', 'Storia'], 'ROBERTO BENIGNI HA VINTO', 'ROBERTO BENIGNI WON'), ('en', 'en-US', ['Movies', 'History'], 'ROBERTO BENIGNI WON', 'ROBERTO BENIGNI HA VINTO')):
             ctx = b.new_context(viewport={'width': 390, 'height': 900}, locale=loc)
             h = host(ctx, lang); h.on('pageerror', lambda e: errs.append(str(e)))
             h.click('#bSet')
             check(lang + ': casella condivisione spenta', not h.is_checked('#gShare'))
             h.click('#bReady'); h.wait_for_selector('#clist label')
             opts = h.eval_on_selector_all('#cat option', 'els => els.map(e => e.textContent)')
-            check(lang + ': categorie nella lingua giusta', all(c in opts for c in cats) and len(opts) == 6)
+            check(lang + ': categorie nella lingua giusta', all(c in opts for c in cats) and len(opts) == 7)
             txt = h.inner_text('#clist')
             check(lang + ': frasi nella lingua giusta', title in txt and other not in txt)
             h.select_option('#cat', cats[0]); n = h.locator('#clist label').count()
             check(lang + ': filtro categoria (20)', n == 20)
+            h.select_option('#cat', ''); h.select_option('#diff', 'easy')
+            labs = h.eval_on_selector_all('#clist label span', 'els => els.map(e => e.textContent)')
+            check(lang + ': difficolta facile = frasi corte', 0 < len(labs) < 120 and all(len(__import__('re').sub(r'[^A-ZÀ-Ý]', '', x)) <= 30 for x in labs))
+            h.select_option('#diff', 'hard')
+            labs = h.eval_on_selector_all('#clist label span', 'els => els.map(e => e.textContent)')
+            check(lang + ': difficolta difficile = frasi lunghe', len(labs) > 0 and all(len(__import__('re').sub(r'[^A-ZÀ-Ý]', '', x)) >= 39 for x in labs))
+            h.select_option('#diff', ''); h.select_option('#cat', cats[0])
             h.click('#cAll'); check(lang + ': seleziona tutte', '20' in h.inner_text('#ccount'))
             h.click('#cAdd')
             v = h.input_value('#txt')
@@ -35,10 +42,10 @@ try:
             h.click('#dCancel')
         # condivisione: spuntata -> arriva da approvare; non spuntata -> nulla
         ctx = b.new_context(viewport={'width': 390, 'height': 900}, locale='it-IT'); h = host(ctx, 'it'); h.on('pageerror', lambda e: errs.append(str(e)))
-        h.click('#bSet'); h.fill('#txt', 'Proverbi | Meglio tardi che mai\nIl Padrino'); h.click('#dSave')
+        h.click('#bSet'); h.fill('#txt', 'Proverbi | Meglio tardi che mai\nChi dorme non piglia pesci'); h.click('#dSave')
         r = ctx.request.get(B + '/api/admin/phrases?status=pending', headers={'Authorization': 'Bearer test-admin-token-1234'}).json()
         check('non spuntata: niente inviato', r['pending'] == 0)
-        h.click('#bSet'); h.fill('#txt', 'Proverbi | Meglio tardi che mai\nIl Padrino'); h.check('#gShare'); h.click('#dSave')
+        h.click('#bSet'); h.fill('#txt', 'Proverbi | Meglio tardi che mai\nChi dorme non piglia pesci'); h.check('#gShare'); h.click('#dSave')
         h.wait_for_function("document.getElementById('toast').textContent.includes('inviate')")
         r = ctx.request.get(B + '/api/admin/phrases?status=pending', headers={'Authorization': 'Bearer test-admin-token-1234'}).json()
         check('spuntata: solo la frase nuova arriva (non quella del catalogo)', r['pending'] == 1 and r['rows'][0]['text'] == 'MEGLIO TARDI CHE MAI' and r['rows'][0]['lang'] == 'it')
