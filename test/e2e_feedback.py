@@ -64,6 +64,9 @@ try:
         # landing: link nel footer
         en.goto(B + '/'); check('landing EN: link feedback', en.locator('footer a[href^="/feedback"]').count() == 1)
         en.goto(B + '/it/'); check('landing IT: link feedback', 'Domande e suggerimenti' in en.inner_text('footer'))
+        en.goto(B + '/privacy'); check('privacy EN', 'Your rights' in en.inner_text('main') and 'Diritti' not in en.inner_text('main'))
+        en.goto(B + '/it/privacy'); t = en.inner_text('main'); check('privacy IT', 'I tuoi diritti' in t and 'Your rights' not in t)
+        en.goto(B + '/it/'); en.click('footer a[href="/it/privacy"]'); check('footer IT -> privacy IT', en.url.endswith('/it/privacy'))
         check('nessun errore JS', not errs)
         if errs: print(errs)
         b.close()
