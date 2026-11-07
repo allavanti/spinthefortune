@@ -27,7 +27,10 @@ try:
         spin(h); h.click('.key[data-l=Z]')
         tv.wait_for_function("document.getElementById('lettersMiss').textContent.includes('Z')")
         check('visibile: Z sulla TV', tv.evaluate("getComputedStyle(document.getElementById('lettersMiss').parentNode).visibility")=='visible')
-        check('visibile: Z bloccata', h.is_disabled('.key[data-l=Z]'))
+        spin(h)
+        check('visibile: Z ancora premibile', not h.is_disabled('.key[data-l=Z]'))
+        h.click('.key[data-l=Z]'); h.wait_for_function("document.getElementById('hint').textContent.includes('Anna')")
+        check('visibile: ripetuta passa il turno', 'already called' in h.inner_text('#toast'))
         # 2) nascoste
         setup(h, hide=True)
         spin(h); h.click('.key[data-l=Z]')

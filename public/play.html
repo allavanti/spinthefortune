@@ -189,7 +189,6 @@ function parsePlayers(text){
   return text.split(/\r?\n/).map(function(s){return s.trim();}).filter(function(s){return s;}).slice(0,12);
 }
 function cur(){return G.phrases[G.idx]||null;}
-function hidMiss(){return !gameSettings().showMiss;}
 function calledAs(L){
   for(var n=0;n<G.called.length;n++){if(G.called[n].l===L)return G.called[n].r;}
   return '';
@@ -342,7 +341,7 @@ function drawKeys(){
     var r=calledAs(L);
     ks[n].classList.remove('hit','miss');
     if(r)ks[n].classList.add(r);
-    ks[n].disabled=(r&&!(r==='miss'&&hidMiss()))||locked()||!RU.canCall(G,L);
+    ks[n].disabled=(r&&r!=='miss')||locked()||!RU.canCall(G,L);
   }
 }
 function drawMeta(){
@@ -414,7 +413,7 @@ function changed(){
 function guess(L){
   var p=cur();
   var was=calledAs(L);
-  if(!p||(was&&!(was==='miss'&&hidMiss()))||locked()||!RU.canCall(G,L))return;
+  if(!p||(was&&was!=='miss')||locked()||!RU.canCall(G,L))return;
   if(was==='miss'){
     RU.call(G,L,0);
     changed();
