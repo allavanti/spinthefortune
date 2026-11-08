@@ -285,9 +285,9 @@ function shake(){
   board.classList.add('shake');
 }
 
-/* ---------- indirizzo e QR: solo a fine turno e quando non c'e' un tabellone ---------- */
+/* ---------- indirizzo e QR: solo a fine manche, con tutte le lettere scoperte ---------- */
 var promoEl=document.querySelector('.promo'),promoUntil=0;
-function promoSync(){promoEl.classList.toggle('on',!enterEl.hidden||!waitEl.hidden||Date.now()<promoUntil);}
+function promoSync(){promoEl.classList.toggle('on',Date.now()<promoUntil);}
 function promoShow(){setTimeout(function(){promoUntil=Date.now()+8000;promoSync();},1800);}
 setInterval(promoSync,500);
 /* ---------- eventi: suoni e annunci ---------- */
@@ -310,7 +310,6 @@ function onEvent(ev,fresh){
   }else if(ev.t==='wrong'){
     banner(t('s_wrong'));S.wrong();
   }
-  if(ev.t==='bankrupt'||ev.t==='pass'||ev.t==='wrong'||ev.t==='solved'||ev.t==='reveal'||(ev.t==='miss'&&state.game))promoShow();
 }
 
 /* ---------- stato ricevuto ---------- */
@@ -347,7 +346,7 @@ function applyState(s){
     if(r.complete&&!completeNow&&!first&&ev&&(ev.t==='hit'||ev.t==='solved'||ev.t==='reveal')){
       var k=fresh?Object.keys(fresh).length:0;
       S.win(Math.min(k,16)*(k>8?0.08:0.45)+0.9);
-      confetti();
+      confetti();promoShow();
     }
     completeNow=r.complete;
   }

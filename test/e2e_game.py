@@ -65,7 +65,7 @@ try:
         tv.screenshot(path=SHOT+'/e2e_confetti.png')
         check('schermo: totale di Anna', 'total 2500' in tv.inner_text('#players').lower())
         tv.wait_for_function("document.querySelector('.promo').classList.contains('on')", timeout=6000)
-        check('schermo: QR a fine round (risolta)', True)
+        check('schermo: QR a fine manche (frase completa)', True)
         tv.wait_for_function("!document.querySelector('.promo').classList.contains('on')", timeout=12000)
         check('schermo: QR sparisce dopo qualche secondo', True)
 
@@ -75,8 +75,7 @@ try:
         tv.wait_for_function("document.getElementById('wheelRes').textContent.toUpperCase().includes('BANKRUPT')", timeout=12000)
         check('schermo: bancarotta mostrata', 'bad' in (tv.get_attribute('#wheelRes', 'class') or ''))
         tv.wait_for_selector('#wheelWrap[hidden]', state='attached', timeout=6000)
-        tv.wait_for_function("document.querySelector('.promo').classList.contains('on')", timeout=6000)
-        check('schermo: QR dopo bancarotta (fine turno)', True)
+        check('schermo: QR assente dopo bancarotta', not promo_on())
         check('schermo: turno passato a Ben', 'on' in (tv.locator('#players .pl').nth(1).get_attribute('class') or ''))
 
         # ricarica schermo: nessuna animazione, punteggi presenti
