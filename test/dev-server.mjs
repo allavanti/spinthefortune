@@ -18,7 +18,7 @@ const env = { DB: fakeD1(), ADMIN_TOKEN: 'test-admin-token-1234' };
 const api = { '/api/room': ['POST', room], '/api/state': ['POST', state], '/api/screen': ['GET', screen], '/api/admin/stats': ['GET', adminStats] };
 const multi = { '/api/feedback': { GET: fbGet, POST: fbPost }, '/api/admin/messages': { GET: msgGet, POST: msgPost },
   '/api/phrases': { GET: phGet, POST: phPost }, '/api/admin/phrases': { GET: apGet, POST: apPost } };
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.txt': 'text/plain', '.json': 'application/json' };
+const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.txt': 'text/plain', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.xml': 'application/xml' };
 
 export function start(port = 8788) {
   const srv = http.createServer(async (req, res) => {

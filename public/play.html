@@ -165,6 +165,7 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
   <label for="gWheel" data-i18n="wheel_label">Wheel segments</label>
   <textarea id="gWheel" spellcheck="false"></textarea>
   <div class="row"><button class="btn small" id="dScores" type="button" data-i18n="reset_scores">Reset all scores</button></div>
+  <p class="gamehint2"><a id="bShare" href="#" data-i18n="share_site" style="color:#f5c542">Tell a friend</a></p>
   <p class="gamehint2"><a id="bSupport" href="https://ko-fi.com/spinthefortune" target="_blank" rel="noopener noreferrer" data-i18n="support_link" style="color:#f5c542">Support the project</a></p>
   <div class="row">
     <button class="btn small" id="dNew" type="button" data-i18n="new_room">New room and code</button>
@@ -692,6 +693,16 @@ el('cReplace').addEventListener('click',function(){
   dlg2.close();toast(t('ready_added',{n:lines.length}));
 });
 /* invio anonimo (solo se la casella e' spuntata): niente frasi del catalogo, niente frasi gia' inviate */
+el('bShare').addEventListener('click',function(e){
+  e.preventDefault();
+  var it=document.documentElement.lang==='it';
+  var url='https://spinthefortune.com/'+(it?'it/':'');
+  var data={title:it?'Gira la Fortuna':'Spin the Fortune',text:t('share_site_text'),url:url};
+  if(navigator.share){navigator.share(data).catch(function(){});return;}
+  var done=function(){toast(t('share_site_copied'));};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(done,function(){toast(url);});
+  else toast(url);
+});
 function shareNew(list){
   var sent=[];
   try{sent=JSON.parse(get(K.shared)||'[]');}catch(e){}

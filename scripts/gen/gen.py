@@ -104,7 +104,7 @@ TPL = r'''<!DOCTYPE html>
 
 <footer>
  <div class="wrap">
-  <span>{foot} <a href="/feedback?lang={lang}">{fbk}</a> &middot; <a href="{pv}">Privacy</a> &middot; <a href="{tm}">{tmt}</a> &middot; <a href="https://ko-fi.com/spinthefortune" target="_blank" rel="noopener noreferrer">{sup}</a></span>
+  <span>{foot} <a href="/feedback?lang={lang}">{fbk}</a> &middot; <a href="{pv}">Privacy</a> &middot; <a href="{tm}">{tmt}</a> &middot;{guides} <a href="https://ko-fi.com/spinthefortune" target="_blank" rel="noopener noreferrer">{sup}</a></span>
   <span><a href="/" hreflang="en" lang="en">English</a> &middot; <a href="/it/" hreflang="it" lang="it">Italiano</a></span>
  </div>
 </footer>
@@ -220,7 +220,7 @@ EN = dict(
  ]),
  final_h='Ready for the first puzzle?',
  foot='Spin the Fortune. A free word-puzzle game.',
- fbk='Questions and suggestions', pv='/privacy', tm='/terms', tmt='Terms of use', sup='Support us', sbh='Enjoying the game?', sbp='Spin the Fortune is free, with no ads and no tracking. If you like it, a small donation helps keep it online and free for everyone.', sbb='Support us on Ko-fi',
+ fbk='Questions and suggestions', pv='/privacy', tm='/terms', tmt='Terms of use', sup='Support us', guides=' <a href="/family-game-night">Family game night</a> &middot; <a href="/classroom-word-game">Classroom</a> &middot; <a href="/word-game-for-tv">Game for TV</a> &middot;', sbh='Enjoying the game?', sbp='Spin the Fortune is free, with no ads and no tracking. If you like it, a small donation helps keep it online and free for everyone.', sbb='Support us on Ko-fi',
  phrase='SPIN THE FORTUNE',
 )
 
@@ -281,7 +281,7 @@ IT = dict(
  ]),
  final_h='Pronti per il primo indovinello?',
  foot='Gira la Fortuna. Un gioco di parole gratuito.',
- fbk='Domande e suggerimenti', pv='/it/privacy', tm='/it/terms', tmt="Termini d'uso", sup='Sostienici', sbh='Ti piace il gioco?', sbp='Gira la Fortuna è gratuita, senza pubblicità e senza tracciamento. Se ti piace, una piccola donazione aiuta a tenerla online e gratuita per tutti.', sbb='Sostienici su Ko-fi',
+ fbk='Domande e suggerimenti', pv='/it/privacy', tm='/it/terms', tmt="Termini d'uso", sup='Sostienici', guides='', sbh='Ti piace il gioco?', sbp='Gira la Fortuna è gratuita, senza pubblicità e senza tracciamento. Se ti piace, una piccola donazione aiuta a tenerla online e gratuita per tutti.', sbb='Sostienici su Ko-fi',
  phrase='GIRA LA FORTUNA',
 )
 

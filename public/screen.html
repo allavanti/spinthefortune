@@ -33,6 +33,14 @@
 .wait .link{background:none;color:#9fb4ff;font-weight:600;font-size:clamp(14px,1.5vw,26px);padding:.4em;text-decoration:underline}
 .wait .link[hidden]{display:none}
 
+
+/* promo: indirizzo e QR del sito */
+.promo{position:fixed;left:12px;bottom:10px;z-index:6;display:flex;align-items:center;gap:10px;pointer-events:none;
+  background:rgba(4,11,42,.72);border:1px solid #2a3d7c;border-radius:12px;padding:6px 10px 6px 6px;color:#cfd8ff;
+  font:600 clamp(11px,1.1vw,20px)/1.2 system-ui,sans-serif}
+.promo img{width:clamp(44px,5vw,96px);height:auto;border-radius:6px;display:block}
+.promo b{display:block;color:#ffd84a;font-weight:800}
+
 /* audio */
 .snd{
   position:fixed;top:10px;right:12px;z-index:7;background:rgba(4,11,42,.78);color:#fff;
@@ -124,6 +132,7 @@
 
 <canvas id="confetti"></canvas>
 <button class="snd" id="snd" type="button"></button>
+<div class="promo" aria-hidden="true"><img src="/qr.svg" alt="" width="66" height="66"><span><span data-i18n="s_promo">Play free at</span><b>spinthefortune.com</b></span></div>
 
 <!-- inserimento del codice -->
 <div class="wait" id="enter" hidden>

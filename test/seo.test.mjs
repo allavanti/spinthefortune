@@ -22,3 +22,17 @@ const rb = r('robots.txt'); ok(/Allow: \//.test(rb) && /Disallow: \/api\//.test(
 const sm = r('sitemap.xml'); for (const u of ['/', '/it/', '/privacy', '/it/privacy', '/terms', '/it/terms']) ok(sm.includes(`<loc>${B}${u}</loc>`), 'sitemap ' + u);
 for (const f of ['og.png', 'og-it.png', 'apple-touch-icon.png', 'favicon.svg']) ok(existsSync(new URL('../public/' + f, import.meta.url)), f);
 console.log('seo ok', n);
+// pagine guida EN
+{
+  let m = 0; const ok2 = (c, s) => { assert.ok(c, s); m++; };
+  for (const s of ['family-game-night', 'classroom-word-game', 'word-game-for-tv']) {
+    const h = r(s + '.html');
+    ok2(h.includes(`<link rel="canonical" href="${B}/${s}">`), s + ' canonical');
+    ok2(/<title>[^<]{20,}<\/title>/.test(h) && /name="description"/.test(h), s + ' title/desc');
+    ok2(!/noindex/.test(h) && !/ruota della fortuna|wheel of fortune/i.test(h), s + ' indexable, no trademark');
+    ok2(r('sitemap.xml').includes(`<loc>${B}/${s}</loc>`), s + ' in sitemap');
+    ok2(r('index.html').includes(`href="/${s}"`), s + ' linked from home');
+  }
+  ok2(existsSync(new URL('../public/qr.svg', import.meta.url)), 'qr.svg');
+  console.log('seo guide pages ok', m);
+}
