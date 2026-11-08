@@ -37,3 +37,4 @@ console.log('seo ok', n);
   ok2(existsSync(new URL('../public/qr.svg', import.meta.url)), 'qr.svg');
   console.log('seo guide pages ok', m);
 }
+{ const h = r('_headers'); assert.ok(/\/js\/\*\s+Cache-Control: no-cache/.test(h) && /\/play\s+Cache-Control: no-cache/.test(h), 'js/play no-cache'); console.log('cache headers ok'); }
