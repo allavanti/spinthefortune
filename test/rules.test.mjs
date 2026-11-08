@@ -57,4 +57,26 @@ R.call(G, 'A', 1); assert.equal(G.ev.t, 'hit'); assert.equal(G.ev.pts, undefined
 // l'ultimo indice non esce dall'array
 G = mk(undefined, { wheel: [1, 2, 3, 4, 5, 6] }); R.spin(G, rndSeq(1, 0, 0)); assert.equal(G.game.spin.i, 5); t('rnd=1 sicuro');
 
+// ruota con STOP: parte, gira, si ferma in base al tempo
+G = mk(undefined, { wheel: [100, 200, 300, 400, 'B', 'P'] });
+assert.ok(R.startSpin(G)); assert.equal(G.game.phase, 'rolling'); assert.equal(G.game.spin.st, 1); assert.equal(G.game.spin.i, -1);
+assert.equal(R.canSpin(G), false); assert.equal(R.canStop(G), true); assert.equal(R.canSolve(G), false); assert.equal(R.canCall(G, 'T'), false);
+assert.equal(R.startSpin(G), false); assert.equal(R.stopSpin(mk(), 0), false);
+const seq0 = G.game.spin.seq;
+assert.ok(R.stopSpin(G, 1000, rndSeq(0.1)));
+assert.equal(G.game.spin.st, 0); assert.equal(G.game.spin.seq, seq0 + 1);
+// 1000 ms * 720 deg/s + 900 = 1620 -> 180 deg -> 6 segmenti da 60: indice 3
+assert.equal(G.game.spin.i, 3); assert.equal(G.game.val, 400); assert.equal(G.game.phase, 'letter'); assert.equal(G.ev.t, 'spin'); t('startSpin e stopSpin');
+// tempi diversi, settori diversi; sempre dentro la ruota
+const seen = new Set(); for (let ms = 0; ms < 3000; ms += 37) { G = mk(undefined, { wheel: [1, 2, 3, 4, 5, 6] }); R.startSpin(G); R.stopSpin(G, ms); assert.ok(G.game.spin.i >= 0 && G.game.spin.i < 6); seen.add(G.game.spin.i); }
+assert.equal(seen.size, 6); t('lo stop copre tutti i settori');
+// annullare un giro: cambio turno o nuova frase fermano la ruota senza risultato
+G = mk(); R.startSpin(G); const s1 = G.game.spin.seq; R.setTurn(G, 1); assert.equal(G.game.phase, 'spin'); assert.equal(G.game.spin.st, 0); assert.equal(G.game.spin.i, -1); assert.equal(G.game.spin.seq, s1 + 1);
+G = mk(); R.startSpin(G); R.newRound(G, true); assert.equal(G.game.spin.st, 0); assert.equal(G.game.phase, 'spin'); t('giro annullato');
+// bancarotta: azzera la manche; con bk anche il totale
+G = mk(undefined, { wheel: [100, 'B', 100, 'B', 100, 'B'] }); G.game.scores[0] = { r: 500, t: 900 }; R.spin(G, rndSeq(0.2)); assert.equal(G.ev.t, 'bankrupt');
+assert.equal(G.game.scores[0].r, 0); assert.equal(G.game.scores[0].t, 900); assert.equal(G.turn, 1);
+G = mk(undefined, { wheel: [100, 'B', 100, 'B', 100, 'B'], bk: true }); G.game.scores[0] = { r: 500, t: 900 }; R.spin(G, rndSeq(0.2));
+assert.equal(G.game.scores[0].r, 0); assert.equal(G.game.scores[0].t, 0); assert.equal(G.game.scores[1].t, 0); t('bancarotta con e senza opzione totale');
+
 console.log(`\n${ok} test passati`);

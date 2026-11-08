@@ -61,6 +61,7 @@ body.ctl{
   padding:12px 6px;font-size:15px;font-weight:600;
 }
 .btn.primary{background:#f5c542;color:#241a00;border-color:#f5c542}
+.btn.primary.danger{background:#e4393c;border-color:#e4393c;color:#fff}
 .btn.small{padding:8px 12px;font-size:13px}
 #toast{
   position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:9;
@@ -157,6 +158,7 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
   <p class="gamehint2" data-i18n="share_hint"></p>
   <label for="ptxt" data-i18n="players_label">Players</label>
   <textarea id="ptxt" spellcheck="false" data-i18n-ph="players_ph"></textarea>
+  <label class="chk"><input type="checkbox" id="gBk"><span data-i18n="bankrupt_all_label">Bankrupt also wipes totals from previous rounds</span></label>
   <label class="chk"><input type="checkbox" id="gMiss"><span data-i18n="show_miss_label">Show wrong letters on the screen</span></label>
   <p class="gamehint2" data-i18n="show_miss_hint"></p>
   <label class="chk"><input type="checkbox" id="gOn"><span data-i18n="scoring_label">Use scores and the wheel</span></label>
@@ -207,7 +209,8 @@ document.title=t('play_title');
 I.apply();
 
 var K={frasi:'stf-phrases-v1',conc:'stf-players-v1',partita:'stf-game-v1',room:'stf-room-v1',game:'stf-scoring-v1',shared:'stf-shared-v1'};
-var SPIN_MS=6500;   // la ruota sulla TV gira circa 5,5 secondi
+var SPIN_MS=7500;   // dopo lo STOP la ruota frena sulla TV per 3-5 secondi, piu' l'annuncio
+var AUTO_STOP_MS=25000,runT0=0,runTimer=0;
 
 function el(id){return document.getElementById(id);}
 var board=el('board'),pv=el('pv'),dlg=el('dlg'),toastEl=el('toast');
@@ -250,7 +253,7 @@ function loadPartita(){
     if(s.game&&G.game&&Array.isArray(s.game.scores)){
       G.game.scores=s.game.scores.slice(0,G.players.length).map(function(x){return {r:+x.r||0,t:+x.t||0};});
       RU.fitPlayers(G,G.players.length);
-      if(['spin','letter','choose'].indexOf(s.game.phase)>=0)G.game.phase=s.game.phase;
+      if(['spin','letter','choose','rolling'].indexOf(s.game.phase)>=0)G.game.phase=s.game.phase;
       G.game.val=+s.game.val||0;
       if(s.game.spin&&typeof s.game.spin.seq==='number')G.game.spin=s.game.spin;
     }
@@ -263,12 +266,12 @@ function gameSettings(){
   try{s=JSON.parse(get(K.game)||'null');}catch(e){}
   s=s||{};
   var w=RU.parseWheel(s.wheelText);
-  return {on:s.on!==false,vowel:typeof s.vowel==='number'?s.vowel:250,wheel:w||RU.DEFAULT_WHEEL.slice(),showMiss:s.showMiss!==false};
+  return {on:s.on!==false,vowel:typeof s.vowel==='number'?s.vowel:250,wheel:w||RU.DEFAULT_WHEEL.slice(),showMiss:s.showMiss!==false,bk:s.bk===true};
 }
 function applyGameSettings(keep){
   var gs=gameSettings(),old=G.game;
   if(!gs.on||!G.players.length){G.game=null;return;}
-  G.game=RU.newGame(G.players.length,{vowel:gs.vowel,wheel:gs.wheel});
+  G.game=RU.newGame(G.players.length,{vowel:gs.vowel,wheel:gs.wheel,bk:gs.bk});
   if(old&&keep){G.game.scores=old.scores;G.game.phase=old.phase;G.game.val=old.val;G.game.spin=old.spin;}
   RU.fitPlayers(G,G.players.length);
 }
@@ -414,7 +417,8 @@ function setStatus(on,text){
 
 /* mentre la ruota gira sulla TV il conduttore non puo' chiamare lettere */
 var lockUntil=0,lockTimer=null;
-function locked(){return Date.now()<lockUntil;}
+function rolling(){return !!(G.game&&G.game.phase==='rolling');}
+function locked(){return Date.now()<lockUntil||rolling();}
 
 function drawHint(){
   var on=RU.active(G);
@@ -427,7 +431,14 @@ function drawHint(){
   else if(gm.phase==='choose')msg=RU.canBuyVowel(G)?t('hint_choose',{name:name,cost:gm.vowel}):t('hint_choose_free',{name:name});
   else msg=t('hint_spin',{name:name});
   el('hint').textContent=msg;
-  el('bSpin').disabled=locked()||!RU.canSpin(G);
+  if(rolling()){
+    msg=t('hint_stop',{name:name});
+    el('hint').textContent=msg;
+    if(!runTimer){if(!runT0)runT0=Date.now();runTimer=setTimeout(doStop,Math.max(0,AUTO_STOP_MS-(Date.now()-runT0)));}
+  }
+  el('bSpin').textContent=rolling()?t('stop'):t('spin');
+  el('bSpin').classList.toggle('danger',rolling());
+  el('bSpin').disabled=rolling()?false:(locked()||!RU.canSpin(G));
   el('bSolved').disabled=locked()||!RU.canSolve(G);
   el('bWrong').disabled=locked()||!RU.canSolve(G);
 }
@@ -495,8 +506,17 @@ function doWrong(){
   changed();
 }
 function doSpin(){
+  if(rolling()){doStop();return;}
   if(locked()||!RU.canSpin(G))return;
-  RU.spin(G,Math.random);
+  RU.startSpin(G);
+  runT0=Date.now();clearTimeout(runTimer);runTimer=0;
+  changed();
+}
+function doStop(){
+  clearTimeout(runTimer);runTimer=0;
+  if(!RU.canStop(G))return;
+  RU.stopSpin(G,Date.now()-runT0,Math.random);
+  runT0=0;
   lockUntil=Date.now()+SPIN_MS;
   changed();
   clearTimeout(lockTimer);
@@ -510,7 +530,7 @@ function doSpin(){
   },SPIN_MS);
 }
 function resetPhrase(advance){
-  lockUntil=0;
+  lockUntil=0;clearTimeout(runTimer);runTimer=0;runT0=0;
   G.called=[];
   G.revealed={};
   RU.newRound(G,advance===true);
@@ -562,6 +582,7 @@ el('bSet').addEventListener('click',function(){
   var gs=gameSettings();
   el('gOn').checked=gs.on;
   el('gMiss').checked=gs.showMiss;
+  el('gBk').checked=gs.bk;
   el('gShare').checked=false;
   el('gVowel').value=gs.vowel;
   el('gWheel').value=RU.wheelToText(gs.wheel,I.lang);
@@ -588,7 +609,7 @@ el('dSave').addEventListener('click',function(){
   if(!wheel){window.alert(t('invalid_wheel'));return;}
   var vowel=parseInt(el('gVowel').value,10);
   if(!(vowel>=0&&vowel<=9999))vowel=250;
-  set(K.game,JSON.stringify({on:el('gOn').checked,showMiss:el('gMiss').checked,vowel:vowel,wheelText:RU.wheelToText(wheel,I.lang)}));
+  set(K.game,JSON.stringify({on:el('gOn').checked,showMiss:el('gMiss').checked,bk:el('gBk').checked,vowel:vowel,wheelText:RU.wheelToText(wheel,I.lang)}));
   set(K.frasi,el('txt').value);
   set(K.conc,el('ptxt').value);
   G.phrases=list;

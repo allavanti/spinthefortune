@@ -22,6 +22,6 @@ const allowed = new Set(['appName']);
 const bad = Object.entries(it).filter(([k, v]) => !allowed.has(k) && banned.test(String(v).replace(/Spin the Fortune/g, ''))).map(([k, v]) => k + ': ' + v);
 assert.deepEqual(bad, [], 'testi italiani con parole inglesi:\n' + bad.join('\n'));
 // valori identici (probabile traduzione dimenticata), esclusi i nomi propri e i formati
-const same = Object.keys(en).filter((k) => en[k] === it[k] && /[a-z]{4,}/i.test(String(en[k]).replace(/\{\w+\}/g, '')) && !['players_ph', 'appName'].includes(k));
+const same = Object.keys(en).filter((k) => en[k] === it[k] && /[a-z]{4,}/i.test(String(en[k]).replace(/\{\w+\}/g, '')) && !['players_ph', 'appName', 'stop'].includes(k));
 assert.deepEqual(same, [], 'testi identici nelle due lingue: ' + same);
 console.log('ok i18n:', Object.keys(en).length, 'chiavi');

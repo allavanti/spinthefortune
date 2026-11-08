@@ -35,6 +35,12 @@ try:
         promo_on = lambda: tv.evaluate("document.querySelector('.promo').classList.contains('on')")
         check('schermo: QR nascosto durante il gioco', not promo_on())
 
+        host.click('#bSpin'); host.wait_for_function("document.getElementById('bSpin').textContent==='STOP'")
+        tv.wait_for_selector('#wheelWrap:not([hidden])', timeout=6000)
+        ang = lambda: tv.evaluate("(()=>{const m=document.getElementById('wheel').style.transform.match(/-?[\\d.]+/);return m?parseFloat(m[0]):0})()")
+        a1 = ang(); tv.wait_for_timeout(500); a2 = ang()
+        check('schermo: la ruota gira da sola dopo Gira (>200 gradi in mezzo secondo)', a2 - a1 > 200)
+        check('schermo: nessun risultato finche non si preme STOP', tv.inner_text('#wheelRes') == '')
         host.click('#bSpin')
         tv.wait_for_selector('#wheelWrap:not([hidden])', timeout=6000)
         check('schermo: la ruota compare', True)
@@ -71,7 +77,7 @@ try:
 
         # bancarotta forzata
         host.click('#bSet'); host.fill('#gWheel', 'bankrupt\nbankrupt\nbankrupt\nbankrupt\nbankrupt\nbankrupt'); host.click('#dSave')
-        host.click('#bSpin')
+        host.click('#bSpin'); host.wait_for_function("document.getElementById('bSpin').textContent==='STOP'"); host.wait_for_timeout(700); host.click('#bSpin')
         tv.wait_for_function("document.getElementById('wheelRes').textContent.toUpperCase().includes('BANKRUPT')", timeout=12000)
         check('schermo: bancarotta mostrata', 'bad' in (tv.get_attribute('#wheelRes', 'class') or ''))
         tv.wait_for_selector('#wheelWrap[hidden]', state='attached', timeout=6000)

@@ -356,7 +356,7 @@ if(typeof ResizeObserver!=='undefined'){new ResizeObserver(function(){draw(null)
 else{window.addEventListener('resize',function(){draw(null);});}
 
 /* ---------- ruota ---------- */
-var wheelBusy=false,pending=null,spinSeq=null,wheelKey='',rot=0;
+var wheelBusy=false,pending=null,spinSeq=null,wheelKey='',rot=0,running=false,runRaf=0,runSeq=-1,RUN_DPS=720;
 var PALETTE=['#e4393c','#f5c542','#2fb36a','#2b63e6','#ff8a2b','#8e44ff'];
 var DARK_TEXT={'#f5c542':1,'#ff8a2b':1};
 
@@ -406,18 +406,42 @@ function kick(){
   pointerEl.classList.add('kick');
 }
 
-function startWheel(v){
-  var g=v.game,n=g.wheel.length,a=360/n;
-  wheelBusy=true;pending=v;
+/* la ruota gira finche' il conduttore non preme STOP */
+function startRun(v){
+  var g=v.game,a=360/g.wheel.length;
+  wheelBusy=true;pending=v;running=true;runSeq=g.spin.seq;
   drawWheel(g.wheel);
   resEl.textContent='';resEl.className='wheelres';
   wheelWrap.hidden=false;
+  var lastK=Math.floor(rot/a),lastTick=0,prev=performance.now();
+  function fr(now){
+    if(!running)return;
+    rot+=RUN_DPS*Math.min(100,now-prev)/1000;prev=now;
+    wheelCv.style.transform='rotate('+rot+'deg)';
+    var kk=Math.floor(rot/a);
+    if(kk!==lastK){
+      lastK=kk;
+      if(now-lastTick>28){S.tick();lastTick=now;}
+      kick();
+    }
+    runRaf=requestAnimationFrame(fr);
+  }
+  runRaf=requestAnimationFrame(fr);
+}
+function endRun(){running=false;cancelAnimationFrame(runRaf);}
+/* cont = la ruota sta gia' girando: frena dalla posizione e velocita' attuali */
+function startWheel(v,cont){
+  var g=v.game,n=g.wheel.length,a=360/n;
+  wheelBusy=true;pending=v;
+  drawWheel(g.wheel);
+  if(!cont){resEl.textContent='';resEl.className='wheelres';}
+  wheelWrap.hidden=false;
   var jit=(g.spin.j-0.5)*0.7*a;
   var req=mod(-((g.spin.i+0.5)*a)+jit,360);
-  var delta=mod(req-mod(rot,360),360)+360*g.spin.turns;
-  var from=rot,to=rot+delta,t0=performance.now(),DUR=5200,lastK=Math.floor(from/a),lastTick=0;
+  var delta=mod(req-mod(rot,360),360)+360*(cont?2:g.spin.turns);
+  var from=rot,to=rot+delta,t0=performance.now(),DUR=cont?Math.max(2500,3000*delta/RUN_DPS):5200,lastK=Math.floor(from/a),lastTick=0;
   function frame(now){
-    var p=Math.min(1,(now-t0)/DUR),e=1-Math.pow(1-p,4),th=from+delta*e;
+    var p=Math.min(1,(now-t0)/DUR),e=cont?1-Math.pow(1-p,3):1-Math.pow(1-p,4),th=from+delta*e;
     wheelCv.style.transform='rotate('+th+'deg)';
     var kk=Math.floor(th/a);
     if(kk!==lastK){
@@ -450,11 +474,24 @@ function landed(v){
 /* Una vista con un nuovo giro fa partire la ruota; la vista si applica a ruota ferma. */
 function handleView(v){
   if(!v||v.v!==1||typeof v.phrase!=='string')return;
-  if(wheelBusy){pending=v;return;}
   var g=v.game;
+  if(running){
+    if(g&&g.spin&&g.spin.seq>runSeq){
+      spinSeq=g.spin.seq;endRun();
+      if(g.spin.i>=0){startWheel(v,true);return;}              // STOP: frena fino al settore scelto
+      wheelWrap.hidden=true;wheelBusy=false;pending=null;      // giro annullato (cambio turno o frase)
+      applyState(v);return;
+    }
+    pending=v;return;
+  }
+  if(wheelBusy){pending=v;return;}
   if(g&&g.spin){
     if(spinSeq===null||g.spin.seq<spinSeq){spinSeq=g.spin.seq;}          // primo caricamento o stanza nuova: senza animazione
-    else if(g.spin.seq>spinSeq&&g.spin.i>=0){spinSeq=g.spin.seq;startWheel(v);return;}
+    else if(g.spin.seq>spinSeq){
+      spinSeq=g.spin.seq;
+      if(g.spin.st===1){startRun(v);return;}
+      if(g.spin.i>=0){startWheel(v,false);return;}
+    }
   }
   applyState(v);
 }
@@ -471,7 +508,7 @@ function showEnter(msg){
 function start(c){
   code=c;store('stf-screen-code',c);
   ver=null;idle=0;state=null;prevRev={};lastSeq=-1;prevScores=null;completeNow=false;
-  wheelBusy=false;pending=null;spinSeq=null;wheelWrap.hidden=true;
+  endRun();wheelBusy=false;pending=null;spinSeq=null;wheelWrap.hidden=true;
   enterEl.hidden=true;
   el('waitCode').textContent=c;
   poll(++run);

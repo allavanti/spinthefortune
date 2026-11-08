@@ -14,7 +14,7 @@ def setup(h, hide):
     h.click('#bSet'); h.fill('#txt', 'Cinema | CASA'); h.fill('#ptxt', 'Anna\nBen'); h.fill('#gWheel', '500\n500\n500\n500\n500\n500')
     h.set_checked('#gMiss', not hide); h.click('#dSave')
 def spin(h):
-    h.click('#bSpin'); h.wait_for_function("document.getElementById('hint').textContent.includes('consonant')", timeout=9000)
+    h.click('#bSpin'); h.wait_for_function("document.getElementById('bSpin').textContent==='STOP'"); h.click('#bSpin'); h.wait_for_function("document.getElementById('hint').textContent.includes('consonant')", timeout=9000)
 try:
     with sync_playwright() as p:
         b = p.chromium.launch(); errs = []

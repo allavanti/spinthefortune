@@ -4,6 +4,8 @@
  *   phase 'spin'   il giocatore di turno deve girare la ruota
  *   phase 'letter' ha girato un valore: deve chiamare una consonante (vale G.game.val per lettera)
  *   phase 'choose' ha trovato lettere: puo' girare ancora, comprare una vocale o risolvere
+ *   phase 'rolling' la ruota gira sulla TV finche' il conduttore non preme STOP (spin.st = 1)
+ *   bk = la bancarotta azzera anche il totale accumulato nelle manche precedenti (opzione)
  *   r = punti della manche (si azzerano con Bancarotta), t = totale accumulato
  * Gli eventi vanno in G.ev (seq cresce a ogni evento) e lo schermo li mostra.
  */
@@ -44,8 +46,9 @@ function newGame(players, opts) {
     on: true,
     vowel: typeof opts.vowel === 'number' ? opts.vowel : 250,
     wheel: (opts.wheel || DEFAULT_WHEEL).slice(),
+    bk: opts.bk === true,
     phase: 'spin', val: 0, scores: sc,
-    spin: { seq: 0, i: -1, turns: 4, j: 0.5 }
+    spin: { seq: 0, i: -1, turns: 4, j: 0.5, st: 0 }
   };
 }
 
@@ -66,12 +69,18 @@ function event(G, ev) {
 }
 function nextTurn(G) {
   if (G.players.length) G.turn = (G.turn + 1) % G.players.length;
-  if (G.game) { G.game.phase = 'spin'; G.game.val = 0; }
+  if (G.game) { cancelRun(G); G.game.phase = 'spin'; G.game.val = 0; }
+}
+/* se la ruota sta girando la ferma senza risultato (la TV la nasconde) */
+function cancelRun(G) {
+  var gm = G.game;
+  if (gm && gm.spin && gm.spin.st === 1) gm.spin = { seq: gm.spin.seq + 1, i: -1, turns: 4, j: 0.5, st: 0 };
 }
 
 /* Cosa puo' fare chi e' di turno */
 function canSpin(G) { return active(G) && (G.game.phase === 'spin' || G.game.phase === 'choose'); }
-function canSolve(G) { return active(G) && G.game.phase !== 'spin'; }
+function canSolve(G) { return active(G) && (G.game.phase === 'letter' || G.game.phase === 'choose'); }
+function canStop(G) { return active(G) && G.game.phase === 'rolling'; }
 function canBuyVowel(G) {
   return active(G) && G.game.phase === 'choose' && G.game.scores[G.turn].r >= G.game.vowel;
 }
@@ -82,17 +91,23 @@ function canCall(G, L) {
   return G.game.phase === 'letter';
 }
 
-/* Gira la ruota. rnd = funzione che restituisce un numero tra 0 e 1. */
-function spin(G, rnd) {
+/* Fa partire la ruota: gira finche' il conduttore non preme STOP. */
+function startSpin(G) {
   if (!canSpin(G)) return false;
   var gm = G.game;
-  var i = Math.floor(rnd() * gm.wheel.length);
-  if (i >= gm.wheel.length) i = gm.wheel.length - 1;
+  gm.phase = 'rolling';
+  gm.spin = { seq: gm.spin.seq + 1, i: -1, turns: 4, j: 0.5, st: 1 };
+  return true;
+}
+/* Esito del giro sul settore i: aggiorna punti, fase ed evento. */
+function resolve(G, i, rnd) {
+  var gm = G.game;
   var v = gm.wheel[i];
-  gm.spin = { seq: gm.spin.seq + 1, i: i, turns: 3 + Math.floor(rnd() * 3), j: rnd() };
+  gm.spin = { seq: gm.spin.seq + 1, i: i, turns: 3 + Math.floor(rnd() * 3), j: rnd(), st: 0 };
   var p = G.turn;
   if (v === 'B') {
     gm.scores[p].r = 0;
+    if (gm.bk) gm.scores[p].t = 0;
     event(G, { t: 'bankrupt', v: 'B', p: p });
     nextTurn(G);
   } else if (v === 'P') {
@@ -103,6 +118,25 @@ function spin(G, rnd) {
     gm.val = v;
     event(G, { t: 'spin', v: v, p: p });
   }
+}
+/* STOP: il settore dipende dal tempo trascorso dalla partenza (ms), a DPS gradi al secondo, piu' la frenata. */
+var DPS = 720, BRAKE_DEG = 900;
+function stopSpin(G, elapsedMs, rnd) {
+  if (!canStop(G)) return false;
+  var n = G.game.wheel.length;
+  var deg = ((Math.max(0, elapsedMs) / 1000) * DPS + BRAKE_DEG) % 360;
+  var i = Math.floor(deg / (360 / n));
+  if (i >= n) i = n - 1;
+  resolve(G, i, rnd || Math.random);
+  return true;
+}
+/* Giro istantaneo con settore casuale (test e modalita' senza tasto STOP). rnd = numero tra 0 e 1. */
+function spin(G, rnd) {
+  if (!canSpin(G)) return false;
+  var n = G.game.wheel.length;
+  var i = Math.floor(rnd() * n);
+  if (i >= n) i = n - 1;
+  resolve(G, i, rnd);
   return true;
 }
 
@@ -153,6 +187,7 @@ function wrong(G) {
 function newRound(G, advance) {
   if (!G.game) return;
   G.game.scores.forEach(function (s) { s.r = 0; });
+  cancelRun(G);
   G.game.phase = 'spin';
   G.game.val = 0;
   if (advance && G.players.length) G.turn = (G.turn + 1) % G.players.length;
@@ -160,20 +195,21 @@ function newRound(G, advance) {
 function resetScores(G) {
   if (!G.game) return;
   G.game.scores.forEach(function (s) { s.r = 0; s.t = 0; });
+  cancelRun(G);
   G.game.phase = 'spin';
   G.game.val = 0;
 }
 /* Cambio turno a mano (nome toccato o pulsante). */
 function setTurn(G, n) {
   G.turn = n;
-  if (G.game) { G.game.phase = 'spin'; G.game.val = 0; }
+  if (G.game) { cancelRun(G); G.game.phase = 'spin'; G.game.val = 0; }
 }
 
 g.Rules = {
   isVowel: isVowel, DEFAULT_WHEEL: DEFAULT_WHEEL, parseWheel: parseWheel, wheelToText: wheelToText,
   newGame: newGame, fitPlayers: fitPlayers, active: active,
-  canSpin: canSpin, canSolve: canSolve, canBuyVowel: canBuyVowel, canCall: canCall,
-  spin: spin, call: call, solved: solved, wrong: wrong, newRound: newRound,
+  canSpin: canSpin, canStop: canStop, canSolve: canSolve, canBuyVowel: canBuyVowel, canCall: canCall,
+  spin: spin, startSpin: startSpin, stopSpin: stopSpin, DPS: DPS, call: call, solved: solved, wrong: wrong, newRound: newRound,
   resetScores: resetScores, setTurn: setTurn
 };
 })(typeof window !== 'undefined' ? window : globalThis);
