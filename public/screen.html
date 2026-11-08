@@ -37,7 +37,8 @@
 /* promo: indirizzo e QR del sito */
 .promo{position:fixed;left:12px;bottom:10px;z-index:6;display:flex;align-items:center;gap:10px;pointer-events:none;
   background:rgba(4,11,42,.72);border:1px solid #2a3d7c;border-radius:12px;padding:6px 10px 6px 6px;color:#cfd8ff;
-  font:600 clamp(11px,1.1vw,20px)/1.2 system-ui,sans-serif}
+  font:600 clamp(11px,1.1vw,20px)/1.2 system-ui,sans-serif;opacity:0;transition:opacity .6s}
+.promo.on{opacity:1}
 .promo img{width:clamp(44px,5vw,96px);height:auto;border-radius:6px;display:block}
 .promo b{display:block;color:#ffd84a;font-weight:800}
 
@@ -284,6 +285,11 @@ function shake(){
   board.classList.add('shake');
 }
 
+/* ---------- indirizzo e QR: solo a fine turno e quando non c'e' un tabellone ---------- */
+var promoEl=document.querySelector('.promo'),promoUntil=0;
+function promoSync(){promoEl.classList.toggle('on',!enterEl.hidden||!waitEl.hidden||Date.now()<promoUntil);}
+function promoShow(){setTimeout(function(){promoUntil=Date.now()+8000;promoSync();},1800);}
+setInterval(promoSync,500);
 /* ---------- eventi: suoni e annunci ---------- */
 function onEvent(ev,fresh){
   var name=(typeof ev.p==='number'&&state.players[ev.p])||'';
@@ -304,6 +310,7 @@ function onEvent(ev,fresh){
   }else if(ev.t==='wrong'){
     banner(t('s_wrong'));S.wrong();
   }
+  if(ev.t==='bankrupt'||ev.t==='pass'||ev.t==='wrong'||ev.t==='solved'||ev.t==='reveal'||(ev.t==='miss'&&state.game))promoShow();
 }
 
 /* ---------- stato ricevuto ---------- */

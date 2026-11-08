@@ -32,6 +32,8 @@ try:
         check('schermo: audio attivato dal primo tasto', True)
         check('schermo: punteggi con 2 concorrenti', tv.locator('#players .pl.game').count() == 2)
         check('schermo: ruota nascosta all\'inizio', tv.is_hidden('#wheelWrap'))
+        promo_on = lambda: tv.evaluate("document.querySelector('.promo').classList.contains('on')")
+        check('schermo: QR nascosto durante il gioco', not promo_on())
 
         host.click('#bSpin')
         tv.wait_for_selector('#wheelWrap:not([hidden])', timeout=6000)
@@ -62,6 +64,10 @@ try:
         tv.wait_for_timeout(1200)
         tv.screenshot(path=SHOT+'/e2e_confetti.png')
         check('schermo: totale di Anna', 'total 2500' in tv.inner_text('#players').lower())
+        tv.wait_for_function("document.querySelector('.promo').classList.contains('on')", timeout=6000)
+        check('schermo: QR a fine round (risolta)', True)
+        tv.wait_for_function("!document.querySelector('.promo').classList.contains('on')", timeout=12000)
+        check('schermo: QR sparisce dopo qualche secondo', True)
 
         # bancarotta forzata
         host.click('#bSet'); host.fill('#gWheel', 'bankrupt\nbankrupt\nbankrupt\nbankrupt\nbankrupt\nbankrupt'); host.click('#dSave')
@@ -69,6 +75,8 @@ try:
         tv.wait_for_function("document.getElementById('wheelRes').textContent.toUpperCase().includes('BANKRUPT')", timeout=12000)
         check('schermo: bancarotta mostrata', 'bad' in (tv.get_attribute('#wheelRes', 'class') or ''))
         tv.wait_for_selector('#wheelWrap[hidden]', state='attached', timeout=6000)
+        tv.wait_for_function("document.querySelector('.promo').classList.contains('on')", timeout=6000)
+        check('schermo: QR dopo bancarotta (fine turno)', True)
         check('schermo: turno passato a Ben', 'on' in (tv.locator('#players .pl').nth(1).get_attribute('class') or ''))
 
         # ricarica schermo: nessuna animazione, punteggi presenti
