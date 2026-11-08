@@ -43,11 +43,13 @@ Da qui ogni push su `main` ripubblica il sito.
 
 Tabella `stats`: giorno, evento, lingua, paese, totale. Eventi: `room_created`, `screen_connected`, `game_started`, `letter_hit`, `letter_miss`, `phrase_completed`, `phrase_revealed`, `wheel_spin`, `phrase_solved`. Nessun identificativo di persona. I limiti di richieste usano un hash della rete che scade dopo poco.
 
-## Prima del lancio pubblico (serve un dominio)
+## SEO e pagine statiche
 
-- Togliere `X-Robots-Tag` da `public/_headers` e `Disallow: /` da `public/robots.txt`.
-- Aggiungere `canonical` e `hreflang` assoluti, `sitemap.xml`, pagina privacy e termini.
-- Accesso con email e account: richiede un servizio di invio email con dominio verificato.
+- Dominio: `spinthefortune.com` (www in 301 verso il dominio nudo tramite Redirect Rule su Cloudflare).
+- Le pagine home, privacy e termini si rigenerano con `cd scripts/gen && python3 gen.py && python3 privacy.py && python3 terms.py` (canonical, hreflang, Open Graph e JSON-LD inclusi).
+- `public/robots.txt` e `public/sitemap.xml` sono statici; play/screen/admin/feedback hanno `noindex` nel meta, `/api/*` ha `X-Robots-Tag`.
+- Nei testi non usare "ruota della fortuna" / "Wheel of Fortune" (marchio): `test/seo.test.mjs` lo verifica.
+- Ancora da fare: accesso con email (serve un servizio di invio con dominio verificato).
 
 ## Test
 

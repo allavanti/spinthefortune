@@ -1,8 +1,6 @@
-# Finche' il sito e' su un indirizzo provvisorio (pages.dev) non va indicizzato.
-# Quando c'e' il dominio: togliere la regola X-Robots-Tag e il Disallow in robots.txt.
 /*
-  X-Robots-Tag: noindex, nofollow
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
 /api/*
   Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow

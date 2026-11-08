@@ -30,3 +30,14 @@ def banner(w,h,cx,R,tx,fs,sub):
 open('logo.svg','w').write(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#120f3a"/>{mark(256,268,170)}</svg>')
 open('banner.svg','w').write(banner(1600,400,260,130,480,120,40))
 open('cover.svg','w').write(banner(1200,400,215,105,395,80,30))
+
+# immagine per le anteprime social (1200x630): ruota in alto, nome e frase sotto
+open('og.svg','w').write(f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="#120f3a"/>
+{mark(600,235,150)}
+<text x="600" y="505" text-anchor="middle" font-family="{FONT}" font-weight="900" font-size="92" fill="#f3f0ff">Spin the <tspan fill="#ffc83d">Fortune</tspan></text>
+<text x="600" y="565" text-anchor="middle" font-family="system-ui,Arial,sans-serif" font-size="34" fill="#b9b3e6">A free word-puzzle game for your TV</text></svg>''')
+
+open('og-it.svg','w').write(f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="#120f3a"/>
+{mark(600,235,150)}
+<text x="600" y="505" text-anchor="middle" font-family="{FONT}" font-weight="900" font-size="92" fill="#f3f0ff">Gira la <tspan fill="#ffc83d">Fortuna</tspan></text>
+<text x="600" y="565" text-anchor="middle" font-family="system-ui,Arial,sans-serif" font-size="34" fill="#b9b3e6">Un gioco di parole gratuito per la TV</text></svg>''')
