@@ -1,4 +1,4 @@
-# Spin the Fortune / Gira la Fortuna
+# Spin the Fortune
 
 Gioco di parole gratuito: il tabellone sulla TV, le lettere dal telefono. Inglese (predefinito) e italiano.
 Cloudflare Pages + Pages Functions + D1. Nessun account: le stanze sono anonime.

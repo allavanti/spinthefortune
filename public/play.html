@@ -697,7 +697,7 @@ el('bShare').addEventListener('click',function(e){
   e.preventDefault();
   var it=document.documentElement.lang==='it';
   var url='https://spinthefortune.com/'+(it?'it/':'');
-  var data={title:it?'Gira la Fortuna':'Spin the Fortune',text:t('share_site_text'),url:url};
+  var data={title:'Spin the Fortune',text:t('share_site_text'),url:url};
   if(navigator.share){navigator.share(data).catch(function(){});return;}
   var done=function(){toast(t('share_site_copied'));};
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(done,function(){toast(url);});

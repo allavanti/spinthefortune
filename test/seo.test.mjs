@@ -10,6 +10,7 @@ for (const [f, url, lang] of [['index.html', '/', 'en'], ['it/index.html', '/it/
   ok(h.includes('og:image') && h.includes('favicon.svg'), f + ' og/favicon');
   ok(!/noindex/.test(h), f + ' indexable');
   ok(!/ruota della fortuna|wheel of fortune/i.test(h), f + ' no trademark phrase');
+  ok(!/gira la fortuna/i.test(h), f + ' no old IT name');
   ok(h.includes(`<html lang="${lang}"`), f + ' lang');
 }
 for (const f of ['index.html', 'it/index.html']) {
@@ -20,7 +21,7 @@ for (const f of ['play.html', 'screen.html', 'admin.html', 'feedback.html']) ok(
 const hd = r('_headers'); ok(!/\/\*[\s\S]*?X-Robots-Tag/.test(hd.split('/api/*')[0]), 'no global noindex'); ok(/\/api\/\*[\s\S]*noindex/.test(hd), 'api noindex');
 const rb = r('robots.txt'); ok(/Allow: \//.test(rb) && /Disallow: \/api\//.test(rb) && rb.includes(B + '/sitemap.xml'), 'robots');
 const sm = r('sitemap.xml'); for (const u of ['/', '/it/', '/privacy', '/it/privacy', '/terms', '/it/terms']) ok(sm.includes(`<loc>${B}${u}</loc>`), 'sitemap ' + u);
-for (const f of ['og.png', 'og-it.png', 'apple-touch-icon.png', 'favicon.svg']) ok(existsSync(new URL('../public/' + f, import.meta.url)), f);
+for (const f of ['og.png', 'apple-touch-icon.png', 'favicon.svg']) ok(existsSync(new URL('../public/' + f, import.meta.url)), f);
 console.log('seo ok', n);
 // pagine guida EN
 {

@@ -53,9 +53,9 @@ body='''  <p>Spin the Fortune is a free game. It needs no account, no password a
   <h2>Contact</h2>
   <p>The data controller is the individual who runs this site. Write to <a href="mailto:info@spinthefortune.com">info@spinthefortune.com</a> or use the <a href="/feedback?lang=en">Questions and suggestions</a> page.</p>
   <p class="upd">Spin the Fortune is an independent fan project and is not affiliated with, or endorsed by, any television programme or its owners.</p>''')
-IT=dict(pen='/privacy',pit='/it/privacy',xl='/it/terms',xt="Termini d'uso",lang='it',title='Privacy - Gira la Fortuna',home='/it/',logo='Gira la <span>Fortuna</span>',ae='',ai=' aria-current="page"',
+IT=dict(pen='/privacy',pit='/it/privacy',xl='/it/terms',xt="Termini d'uso",lang='it',title='Privacy - Spin the Fortune',home='/it/',logo='Spin the <span>Fortune</span>',ae='',ai=' aria-current="page"',
 h1='Privacy',upd='Ultimo aggiornamento: 7 novembre 2026',back='Torna al gioco',fb='Domande e suggerimenti',
-body='''  <p>Gira la Fortuna è un gioco gratuito. Non servono account, password o indirizzo email e non usa pubblicità né tracciamento.</p>
+body='''  <p>Spin the Fortune è un gioco gratuito. Non servono account, password o indirizzo email e non usa pubblicità né tracciamento.</p>
   <h2>Cosa conserviamo</h2>
   <ul>
    <li><b>Stanze.</b> Quando avvii una partita conserviamo il codice della stanza, la frase da indovinare, la categoria, i nomi dei giocatori e i punteggi che hai scritto, e un&rsquo;impronta irreversibile della chiave della stanza (mai la chiave stessa). La stanza si cancella da sola dopo 24 ore senza uso.</li>
@@ -76,11 +76,11 @@ body='''  <p>Gira la Fortuna è un gioco gratuito. Non servono account, password
   <p>Il gioco è pensato per le famiglie. Non scrivere nome e cognome o altri dati personali dei bambini come nomi dei giocatori: bastano il nome di battesimo o un soprannome.</p>
   <h2>Contatti</h2>
   <p>Il titolare del trattamento è la persona che gestisce questo sito. Scrivi a <a href="mailto:info@spinthefortune.com">info@spinthefortune.com</a> oppure usa la pagina <a href="/feedback?lang=it">Domande e suggerimenti</a>.</p>
-  <p class="upd">Gira la Fortuna è un progetto indipendente di appassionati e non è affiliato né approvato da alcun programma televisivo o dai suoi titolari.</p>''')
+  <p class="upd">Spin the Fortune è un progetto indipendente di appassionati e non è affiliato né approvato da alcun programma televisivo o dai suoi titolari.</p>''')
 BASE='https://spinthefortune.com'
 def seo_head(page, lang):
   en=BASE+'/'+page; it=BASE+'/it/'+page
-  me,loc,img=(en,'en_US','og.png') if lang=='en' else (it,'it_IT','og-it.png')
+  me,loc,img=(en,'en_US','og.png') if lang=='en' else (it,'it_IT','og.png')
   L=['<link rel="canonical" href="%s">'%me,
      '<link rel="alternate" hreflang="en" href="%s">'%en,
      '<link rel="alternate" hreflang="it" href="%s">'%it,

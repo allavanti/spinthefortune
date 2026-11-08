@@ -142,9 +142,9 @@ var D = {
     s_vowel: '{name} bought {l} (-{cost})'
   },
   it: {
-    appName: 'Gira la Fortuna',
-    play_title: 'Conduttore - Gira la Fortuna',
-    screen_title: 'Schermo - Gira la Fortuna',
+    appName: 'Spin the Fortune',
+    play_title: 'Conduttore - Spin the Fortune',
+    screen_title: 'Schermo - Spin the Fortune',
     connecting: 'Connessione…',
     connected: 'Schermo collegato',
     offline: 'Offline. Riprovo…',
@@ -240,7 +240,7 @@ var D = {
     s_change: 'Cambia codice',
     s_promo: 'Gioca gratis su',
     s_error: 'Problema di connessione. Riprovo…',
-    f_title: 'Domande e suggerimenti - Gira la Fortuna',
+    f_title: 'Domande e suggerimenti - Spin the Fortune',
     f_h1: 'Domande e suggerimenti',
     f_intro: 'Fai una domanda, proponi un\u2019idea o segnala un problema. Leggiamo ogni messaggio e rispondiamo qui.',
     f_kind: 'Di cosa si tratta?',

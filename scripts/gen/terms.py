@@ -24,10 +24,10 @@ body='''  <p>By using Spin the Fortune you accept these terms. If you do not agr
   <p>We may update these terms; the date above shows the latest version, and continuing to use the site means you accept the changes. These terms are governed by Italian law, without prejudice to the mandatory rights you have as a consumer in your country.</p>
   <h2>Contact</h2>
   <p>Write to <a href="mailto:info@spinthefortune.com">info@spinthefortune.com</a> or use the <a href="/feedback?lang=en">Questions and suggestions</a> page.</p>''')
-IT=dict(P.IT, pen='/terms', pit='/it/terms', xl='/it/privacy', xt='Privacy', title="Termini d'uso - Gira la Fortuna", h1="Termini d'uso", upd='Ultimo aggiornamento: 8 novembre 2026',
-body='''  <p>Usando Gira la Fortuna accetti questi termini. Se non sei d&rsquo;accordo, non usare il sito.</p>
+IT=dict(P.IT, pen='/terms', pit='/it/terms', xl='/it/privacy', xt='Privacy', title="Termini d'uso - Spin the Fortune", h1="Termini d'uso", upd='Ultimo aggiornamento: 8 novembre 2026',
+body='''  <p>Usando Spin the Fortune accetti questi termini. Se non sei d&rsquo;accordo, non usare il sito.</p>
   <h2>Il servizio</h2>
-  <p>Gira la Fortuna è un gioco di parole gratuito per famiglia e amici: un tabellone che si vede su una TV o uno schermo e si controlla dal telefono. Viene offerto &ldquo;così com&rsquo;è&rdquo;. Non garantiamo che sia sempre disponibile o privo di errori e possiamo modificarlo o sospenderlo in qualsiasi momento.</p>
+  <p>Spin the Fortune è un gioco di parole gratuito per famiglia e amici: un tabellone che si vede su una TV o uno schermo e si controlla dal telefono. Viene offerto &ldquo;così com&rsquo;è&rdquo;. Non garantiamo che sia sempre disponibile o privo di errori e possiamo modificarlo o sospenderlo in qualsiasi momento.</p>
   <h2>Uso consentito</h2>
   <ul>
    <li>Usa il gioco per scopi personali, familiari o comunque non commerciali.</li>
@@ -40,7 +40,7 @@ body='''  <p>Usando Gira la Fortuna accetti questi termini. Se non sei d&rsquo;a
   <h2>Donazioni</h2>
   <p>Le donazioni sono volontarie, avvengono tramite il servizio esterno Ko-fi secondo le sue condizioni e non danno diritto a funzioni, assistenza o altre contropartite.</p>
   <h2>Proprietà intellettuale</h2>
-  <p>Il codice, la grafica e i testi del sito appartengono ai rispettivi autori. Gira la Fortuna è un progetto indipendente e non è affiliato né approvato da alcun programma televisivo o dai suoi titolari. Nomi, titoli e marchi che compaiono nelle frasi pronte appartengono ai rispettivi titolari e sono usati solo come risposte dei giochi.</p>
+  <p>Il codice, la grafica e i testi del sito appartengono ai rispettivi autori. Spin the Fortune è un progetto indipendente e non è affiliato né approvato da alcun programma televisivo o dai suoi titolari. Nomi, titoli e marchi che compaiono nelle frasi pronte appartengono ai rispettivi titolari e sono usati solo come risposte dei giochi.</p>
   <h2>Responsabilità</h2>
   <p>Nei limiti massimi consentiti dalla legge, non rispondiamo di danni derivanti dall&rsquo;uso o dall&rsquo;impossibilità di usare il servizio. Nulla in questi termini limita i diritti che per legge non si possono escludere, compresi quelli dei consumatori.</p>
   <h2>Modifiche e legge applicabile</h2>

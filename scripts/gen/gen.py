@@ -238,14 +238,14 @@ IT = dict(
   '<b>Regole tue.</b> Nelle Impostazioni cambi i valori della ruota, quante Bancarotte e Passa ha e il prezzo della vocale. Senza nomi dei concorrenti si gioca senza punteggi.',
  ]),
  lang='it', home='/it/', cur_en='', cur_it=' aria-current="page"', langlabel='Lingua',
- canon='https://spinthefortune.com/it/', ogimg='og-it.png', ogloc='it_IT', sitename='Gira la Fortuna', ogalt='Logo di Gira la Fortuna: una ruota colorata con una tessera con la lettera S', jsonld=json.dumps({'@context':'https://schema.org','@type':'WebApplication','name':'Gira la Fortuna','url':'https://spinthefortune.com/it/','applicationCategory':'GameApplication','operatingSystem':'Qualsiasi (browser web)','inLanguage':'it','isAccessibleForFree':True,'description':'Gioco di parole gratuito per serate in famiglia, feste e classi. Il tabellone sulla TV, la ruota e le lettere dal telefono.','offers':{'@type':'Offer','price':'0','priceCurrency':'EUR'}},ensure_ascii=False),
- title='Gira la Fortuna: gioco di parole gratuito col tabellone sulla TV',
- desc='Gioco di parole gratuito per serate in famiglia, feste e classi. Il tabellone sulla TV, la ruota e le lettere dal telefono. Senza registrazione né app.',
- logo='Gira la <span>Fortuna</span>',
+ canon='https://spinthefortune.com/it/', ogimg='og.png', ogloc='it_IT', sitename='Spin the Fortune', ogalt='Logo di Spin the Fortune: una ruota colorata con una tessera con la lettera S', jsonld=json.dumps({'@context':'https://schema.org','@type':'WebApplication','name':'Spin the Fortune','url':'https://spinthefortune.com/it/','applicationCategory':'GameApplication','operatingSystem':'Qualsiasi (browser web)','inLanguage':'it','isAccessibleForFree':True,'description':'Gioco di parole gratuito per serate in famiglia, feste e classi. Il tabellone sulla TV, la ruota e le lettere dal telefono.','offers':{'@type':'Offer','price':'0','priceCurrency':'EUR'}},ensure_ascii=False),
+ title='Spin the Fortune: gioco di parole gratuito, tabellone sulla TV e conduzione dal telefono',
+ desc='Gioco di parole gratuito per serate in famiglia, feste e classi: tabellone e ruota sulla TV, conduzione dal telefono, frasi tue o pronte per categoria e difficoltà. Senza registrazione né app.',
+ logo='Spin the <span>Fortune</span>',
  h1='Serata di indovinelli sulla TV, guidata dal telefono',
- lead='Gira la Fortuna è un gioco di parole gratuito con tabellone, ruota e punteggi, per serate in famiglia, feste e classi. Mostri il tabellone su uno schermo grande, scrivi le tue frasi e chiami le lettere dal telefono. Niente account, niente app da installare.',
+ lead='Spin the Fortune è un gioco di parole gratuito per serate in famiglia, feste e classi. Il tabellone, la ruota e i punteggi stanno sullo schermo grande; tu conduci la partita dal telefono, con le tue frasi o con quelle pronte per categoria e difficoltà. Niente account, niente app da installare.',
  cta='Inizia una partita', more='Come funziona', howid='come-funziona',
- boardlabel='Un tabellone che scrive Gira la Fortuna, lettera per lettera',
+ boardlabel='Un tabellone che scrive Spin the Fortune, lettera per lettera',
  how_h='Come funziona',
  steps=steps([
   ('Avvia la partita dal telefono','Tocca Inizia una partita. Ricevi un codice schermo di 6 caratteri e un gruppo di frasi pronte per provare.'),
@@ -280,9 +280,9 @@ IT = dict(
   ('Posso usarlo in classe?','Sì. Usa le categorie come argomenti, inserisci la classe come concorrenti e proietta il tabellone. Da parte nostra non viene salvato nulla di personale.'),
  ]),
  final_h='Pronti per il primo indovinello?',
- foot='Gira la Fortuna. Un gioco di parole gratuito.',
- fbk='Domande e suggerimenti', pv='/it/privacy', tm='/it/terms', tmt="Termini d'uso", sup='Sostienici', guides='', sbh='Ti piace il gioco?', sbp='Gira la Fortuna è gratuita, senza pubblicità e senza tracciamento. Se ti piace, una piccola donazione aiuta a tenerla online e gratuita per tutti.', sbb='Sostienici su Ko-fi',
- phrase='GIRA LA FORTUNA',
+ foot='Spin the Fortune. Un gioco di parole gratuito.',
+ fbk='Domande e suggerimenti', pv='/it/privacy', tm='/it/terms', tmt="Termini d'uso", sup='Sostienici', guides='', sbh='Ti piace il gioco?', sbp='Spin the Fortune è gratuita, senza pubblicità e senza tracciamento. Se ti piace, una piccola donazione aiuta a tenerla online e gratuita per tutti.', sbb='Sostienici su Ko-fi',
+ phrase='SPIN THE FORTUNE',
 )
 
 def build(d, path):
