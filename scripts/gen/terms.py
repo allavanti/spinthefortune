@@ -23,7 +23,7 @@ body='''  <p>By using Spin the Fortune you accept these terms. If you do not agr
   <h2>Changes and governing law</h2>
   <p>We may update these terms; the date above shows the latest version, and continuing to use the site means you accept the changes. These terms are governed by Italian law, without prejudice to the mandatory rights you have as a consumer in your country.</p>
   <h2>Contact</h2>
-  <p>Write to <a href="mailto:allavanti@protonmail.com">allavanti@protonmail.com</a> or use the <a href="/feedback?lang=en">Questions and suggestions</a> page.</p>''')
+  <p>Write to <a href="mailto:info@spinthefortune.com">info@spinthefortune.com</a> or use the <a href="/feedback?lang=en">Questions and suggestions</a> page.</p>''')
 IT=dict(P.IT, pen='/terms', pit='/it/terms', xl='/it/privacy', xt='Privacy', title="Termini d'uso - Gira la Fortuna", h1="Termini d'uso", upd='Ultimo aggiornamento: 8 novembre 2026',
 body='''  <p>Usando Gira la Fortuna accetti questi termini. Se non sei d&rsquo;accordo, non usare il sito.</p>
   <h2>Il servizio</h2>
@@ -46,6 +46,6 @@ body='''  <p>Usando Gira la Fortuna accetti questi termini. Se non sei d&rsquo;a
   <h2>Modifiche e legge applicabile</h2>
   <p>Possiamo aggiornare questi termini: la data in alto indica l&rsquo;ultima versione e continuare a usare il sito significa accettare le modifiche. I termini sono regolati dalla legge italiana, salvi i diritti inderogabili che hai come consumatore nel tuo paese.</p>
   <h2>Contatti</h2>
-  <p>Scrivi a <a href="mailto:allavanti@protonmail.com">allavanti@protonmail.com</a> oppure usa la pagina <a href="/feedback?lang=it">Domande e suggerimenti</a>.</p>''')
+  <p>Scrivi a <a href="mailto:info@spinthefortune.com">info@spinthefortune.com</a> oppure usa la pagina <a href="/feedback?lang=it">Domande e suggerimenti</a>.</p>''')
 for d,p in ((EN,'terms.html'),(IT,'it/terms.html')):
     open(os.path.join(P.ROOT,p),'w',encoding='utf-8').write(P.render(P.T,d,'terms'))

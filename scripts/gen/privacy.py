@@ -51,7 +51,7 @@ body='''  <p>Spin the Fortune is a free game. It needs no account, no password a
   <h2>Children</h2>
   <p>The game is meant for families. Do not type full names or other personal details of children as player names: first names or nicknames are enough.</p>
   <h2>Contact</h2>
-  <p>The data controller is the individual who runs this site. Write to <a href="mailto:allavanti@protonmail.com">allavanti@protonmail.com</a> or use the <a href="/feedback?lang=en">Questions and suggestions</a> page.</p>
+  <p>The data controller is the individual who runs this site. Write to <a href="mailto:info@spinthefortune.com">info@spinthefortune.com</a> or use the <a href="/feedback?lang=en">Questions and suggestions</a> page.</p>
   <p class="upd">Spin the Fortune is an independent fan project and is not affiliated with, or endorsed by, any television programme or its owners.</p>''')
 IT=dict(pen='/privacy',pit='/it/privacy',xl='/it/terms',xt="Termini d'uso",lang='it',title='Privacy - Gira la Fortuna',home='/it/',logo='Gira la <span>Fortuna</span>',ae='',ai=' aria-current="page"',
 h1='Privacy',upd='Ultimo aggiornamento: 7 novembre 2026',back='Torna al gioco',fb='Domande e suggerimenti',
@@ -75,7 +75,7 @@ body='''  <p>Gira la Fortuna è un gioco gratuito. Non servono account, password
   <h2>Minori</h2>
   <p>Il gioco è pensato per le famiglie. Non scrivere nome e cognome o altri dati personali dei bambini come nomi dei giocatori: bastano il nome di battesimo o un soprannome.</p>
   <h2>Contatti</h2>
-  <p>Il titolare del trattamento è la persona che gestisce questo sito. Scrivi a <a href="mailto:allavanti@protonmail.com">allavanti@protonmail.com</a> oppure usa la pagina <a href="/feedback?lang=it">Domande e suggerimenti</a>.</p>
+  <p>Il titolare del trattamento è la persona che gestisce questo sito. Scrivi a <a href="mailto:info@spinthefortune.com">info@spinthefortune.com</a> oppure usa la pagina <a href="/feedback?lang=it">Domande e suggerimenti</a>.</p>
   <p class="upd">Gira la Fortuna è un progetto indipendente di appassionati e non è affiliato né approvato da alcun programma televisivo o dai suoi titolari.</p>''')
 BASE='https://spinthefortune.com'
 def seo_head(page, lang):
