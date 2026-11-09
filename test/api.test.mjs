@@ -166,6 +166,8 @@ let pr = await ph({ lang: 'it', items: [{ c: 'Proverbi', t: 'Chi va piano va san
 assert.equal(pr.s, 200); assert.equal(pr.b.accepted, 1); t('frasi: filtri e doppioni nello stesso invio');
 pr = await ph({ lang: 'it', items: [{ c: 'Proverbi', t: 'Chi va piano va sano' }] });
 assert.equal(pr.b.accepted, 1);
+pr = await ph({ lang: 'it', items: [{ c: 'Storia', t: 'Colombo scoprì l\'America nel 1492' }, { c: 'Storia', t: 'Il 4 novembre' }] });
+assert.equal(pr.b.accepted, 0); t('frasi: le cifre non sono ammesse (solo lettere)');
 let pg = await apg('status=pending&lang=it');
 assert.equal(pg.b.pending, 1); assert.equal(pg.b.rows[0].n, 2); assert.equal(pg.b.rows[0].text, 'CHI VA PIANO VA SANO'); t('frasi: da approvare, contatore proposte');
 assert.equal((await call(phGet, '/api/phrases?lang=it')).b.rows.length, 0); t('frasi: non approvate non pubbliche');
