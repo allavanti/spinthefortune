@@ -134,6 +134,10 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible
   <button class="btn" id="bSolved" type="button" data-i18n="solved_btn">Solved</button>
   <button class="btn" id="bWrong" type="button" data-i18n="wrong_btn">Wrong</button>
 </div>
+<div class="actions game" id="jollyBtns" hidden>
+  <button class="btn primary" id="bJollyUse" type="button" data-i18n="jolly_use">Use the Joker</button>
+  <button class="btn" id="bJollyNo" type="button" data-i18n="jolly_no">No, lose the turn</button>
+</div>
 <div id="keys"></div>
 
 <div class="actions">
@@ -251,9 +255,11 @@ function loadPartita(){
     G.ev={seq:s.seq||0,t:''};
     if(G.turn>=G.players.length)G.turn=0;
     if(s.game&&G.game&&Array.isArray(s.game.scores)){
-      G.game.scores=s.game.scores.slice(0,G.players.length).map(function(x){return {r:+x.r||0,t:+x.t||0};});
+      G.game.scores=s.game.scores.slice(0,G.players.length).map(function(x){return {r:+x.r||0,t:+x.t||0,j:+x.j===1?1:0};});
       RU.fitPlayers(G,G.players.length);
-      if(['spin','letter','choose','rolling'].indexOf(s.game.phase)>=0)G.game.phase=s.game.phase;
+      if(['spin','letter','choose','rolling','jolly'].indexOf(s.game.phase)>=0)G.game.phase=s.game.phase;
+      if(['B','P','M','V','W'].indexOf(s.game.loss)>=0)G.game.loss=s.game.loss;
+      if(s.game.prev==='letter'||s.game.prev==='choose')G.game.prev=s.game.prev;
       G.game.val=+s.game.val||0;
       if(s.game.spin&&typeof s.game.spin.seq==='number')G.game.spin=s.game.spin;
     }
@@ -272,7 +278,7 @@ function applyGameSettings(keep){
   var gs=gameSettings(),old=G.game;
   if(!gs.on||!G.players.length){G.game=null;return;}
   G.game=RU.newGame(G.players.length,{vowel:gs.vowel,wheel:gs.wheel,bk:gs.bk});
-  if(old&&keep){G.game.scores=old.scores;G.game.phase=old.phase;G.game.val=old.val;G.game.spin=old.spin;}
+  if(old&&keep){G.game.scores=old.scores;G.game.phase=old.phase;G.game.val=old.val;G.game.spin=old.spin;G.game.loss=old.loss||'';G.game.prev=old.prev;}
   RU.fitPlayers(G,G.players.length);
 }
 
@@ -397,10 +403,10 @@ function drawChips(){
     b.textContent=name;
     if(RU.active(G)){
       var sc=G.game.scores[n],sm=document.createElement('small');
-      sm.textContent=sc.r+(sc.t?' ('+sc.t+')':'');
+      sm.textContent=sc.r+(sc.t?' ('+sc.t+')':'')+(sc.j?' \uD83C\uDCCF':'');
       b.appendChild(sm);
     }
-    b.addEventListener('click',function(){if(locked())return;RU.setTurn(G,n);changed();});
+    b.addEventListener('click',function(){if(locked()||RU.canJolly(G))return;RU.setTurn(G,n);changed();});
     box.appendChild(b);
   });
 }
@@ -426,7 +432,8 @@ function drawHint(){
   el('gameBtns').hidden=!on;
   if(!on)return;
   var name=G.players[G.turn],gm=G.game,msg;
-  if(locked())msg=t('spinning');
+  if(gm.phase==='jolly')msg=t('hint_jolly',{name:name});
+  else if(locked())msg=t('spinning');
   else if(gm.phase==='letter')msg=t('hint_letter',{name:name,val:gm.val});
   else if(gm.phase==='choose')msg=RU.canBuyVowel(G)?t('hint_choose',{name:name,cost:gm.vowel}):t('hint_choose_free',{name:name});
   else msg=t('hint_spin',{name:name});
@@ -441,6 +448,8 @@ function drawHint(){
   el('bSpin').disabled=rolling()?false:(locked()||!RU.canSpin(G));
   el('bSolved').disabled=locked()||!RU.canSolve(G);
   el('bWrong').disabled=locked()||!RU.canSolve(G);
+  el('jollyBtns').hidden=!RU.canJolly(G);
+  el('bJollyUse').disabled=el('bJollyNo').disabled=Date.now()<lockUntil;
 }
 function redraw(){
   drawPreview();
@@ -500,6 +509,11 @@ function doSolved(){
   RU.solved(G);
   changed();
 }
+function doJolly(use){
+  if(Date.now()<lockUntil||!RU.canJolly(G))return;
+  if(use)RU.useJolly(G);else RU.declineJolly(G);
+  changed();
+}
 function doWrong(){
   if(locked()||!RU.canSolve(G))return;
   RU.wrong(G);
@@ -549,7 +563,7 @@ function randomPhrase(){
   goTo(n);
 }
 function nextTurn(){
-  if(!G.players.length||locked())return;
+  if(!G.players.length||locked()||RU.canJolly(G))return;
   RU.setTurn(G,(G.turn+1)%G.players.length);
   changed();
 }
@@ -563,6 +577,8 @@ el('bReset').addEventListener('click',function(){resetPhrase(false);});
 el('bSpin').addEventListener('click',doSpin);
 el('bSolved').addEventListener('click',doSolved);
 el('bWrong').addEventListener('click',doWrong);
+el('bJollyUse').addEventListener('click',function(){doJolly(true);});
+el('bJollyNo').addEventListener('click',function(){doJolly(false);});
 el('bTurn').addEventListener('click',nextTurn);
 
 el('bLang').textContent=I.lang==='it'?'EN':'IT';

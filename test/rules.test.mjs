@@ -79,4 +79,34 @@ assert.equal(G.game.scores[0].r, 0); assert.equal(G.game.scores[0].t, 900); asse
 G = mk(undefined, { wheel: [100, 'B', 100, 'B', 100, 'B'], bk: true }); G.game.scores[0] = { r: 500, t: 900 }; R.spin(G, rndSeq(0.2));
 assert.equal(G.game.scores[0].r, 0); assert.equal(G.game.scores[0].t, 0); assert.equal(G.game.scores[1].t, 0); t('bancarotta con e senza opzione totale');
 
+// Jolly: si prende con lo spicchio, resta, annulla una perdita di turno e si consuma
+G = mk(undefined, { wheel: ['J', 100, 100, 'B', 'P', 100] });
+G.game.scores[0] = { r: 400, t: 700, j: 0 };
+assert.ok(R.spin(G, () => 0)); // spicchio 0 = Jolly
+assert.equal(G.game.scores[0].j, 1); assert.equal(G.game.phase, 'spin'); assert.equal(G.turn, 0); assert.equal(G.ev.t, 'jolly'); assert.ok(!G.ev.dup);
+assert.ok(R.spin(G, () => 0)); assert.equal(G.ev.dup, 1); assert.equal(G.game.scores[0].j, 1); t('jolly: si prende, un solo gettone');
+// bancarotta con Jolly: chiede, usare = niente perso e turno mantenuto
+G.game.wheel = [100, 100, 100, 'B', 100, 100];
+G.game.phase = 'spin';
+assert.ok(R.spin(G, () => 0.55)); // indice 3 = B
+assert.equal(G.game.phase, 'jolly'); assert.equal(G.game.loss, 'B'); assert.equal(G.game.scores[0].r, 400); assert.equal(R.canSpin(G), false); assert.equal(R.canCall(G, 'T'), false); assert.equal(R.canSolve(G), false);
+assert.ok(R.useJolly(G)); assert.equal(G.game.phase, 'spin'); assert.equal(G.turn, 0); assert.equal(G.game.scores[0].r, 400); assert.equal(G.game.scores[0].t, 700); assert.equal(G.game.scores[0].j, 0); assert.equal(G.ev.t, 'jollyuse');
+assert.equal(R.useJolly(G), false); t('jolly: annulla la bancarotta e si consuma');
+// rinunciare: la perdita si applica e il Jolly resta
+G.game.scores[0].j = 1; G.game.phase = 'spin';
+assert.ok(R.spin(G, () => 0.55)); assert.equal(G.game.phase, 'jolly');
+assert.ok(R.declineJolly(G)); assert.equal(G.game.scores[0].r, 0); assert.equal(G.game.scores[0].j, 1); assert.equal(G.turn, 1); assert.equal(G.ev.t, 'bankrupt'); assert.equal(G.game.phase, 'spin'); t('jolly: rinuncia, bancarotta applicata, Jolly conservato');
+// lettera mancata, vocale mancata, risposta sbagliata
+G = mk(undefined, { wheel: [100, 100, 100, 100, 100, 100] }); G.game.scores[0] = { r: 600, t: 0, j: 1 };
+R.spin(G, () => 0); R.call(G, 'T', 0); assert.equal(G.game.phase, 'jolly'); assert.equal(G.game.loss, 'M'); assert.equal(G.ev.t, 'miss');
+R.useJolly(G); assert.equal(G.turn, 0); assert.equal(G.game.phase, 'spin');
+G.game.phase = 'choose'; G.game.scores[0].j = 1; R.call(G, 'E', 0); assert.equal(G.game.loss, 'V'); assert.equal(G.game.scores[0].r, 350);
+R.useJolly(G); assert.equal(G.game.phase, 'choose'); assert.equal(G.turn, 0);
+G.game.scores[0].j = 1; R.wrong(G); assert.equal(G.game.loss, 'W'); R.useJolly(G); assert.equal(G.game.phase, 'choose'); assert.equal(G.turn, 0);
+G.game.scores[0].j = 1; R.wrong(G); R.declineJolly(G); assert.equal(G.turn, 1); assert.equal(G.ev.t, 'wrong'); t('jolly: lettera, vocale e risposta sbagliata');
+// tra le manche il Jolly resta; l'azzeramento dei punteggi lo toglie
+G = mk(); G.game.scores[0].j = 1; R.newRound(G, true); assert.equal(G.game.scores[0].j, 1); R.resetScores(G); assert.equal(G.game.scores[0].j, 0);
+G = mk(); G.game.scores[0].j = 1; G.game.phase = 'jolly'; G.game.loss = 'B'; R.setTurn(G, 1); assert.equal(G.game.phase, 'spin'); assert.equal(G.game.loss, ''); t('jolly: persiste tra le manche, si azzera con i punteggi');
+assert.deepEqual(R.parseWheel('100, jolly, B, P, 200, 300'), [100, 'J', 'B', 'P', 200, 300]); assert.ok(R.DEFAULT_WHEEL.filter((x) => x === 'J').length === 1); t('ruota: parseWheel e default con un solo Jolly');
+
 console.log(`\n${ok} test passati`);

@@ -79,7 +79,7 @@ assert.equal(last.s, 429); t('limite tentativi');
 
 // ruota e punteggi
 const W = [100, 'B', 250, 'P', 500, 300];
-const G0 = { on: true, vowel: 250, wheel: W, phase: 'letter', val: 300, scores: [{ r: 600, t: 1200 }, { r: 0, t: 0 }], spin: { seq: 1, i: 2, turns: 4, j: 0.3 } };
+const G0 = { on: true, vowel: 250, wheel: W, phase: 'letter', val: 300, scores: [{ r: 600, t: 1200, j: 1 }, { r: 0, t: 0 }], spin: { seq: 1, i: 2, turns: 4, j: 0.3 } };
 w = await post(state, '/api/state', S({ game: G0, ev: { seq: 20, t: 'spin', v: 250, p: 0 } }), token);
 assert.equal(w.s, 200);
 let sv = JSON.parse(env.DB._db.prepare('SELECT state FROM rooms').get().state);
@@ -87,6 +87,10 @@ assert.deepEqual(sv.game.wheel, W); assert.equal(sv.game.scores[0].t, 1200); ass
 assert.equal(stat('wheel_spin'), 1); t('ruota e punteggi salvati');
 g = await call(screen, `/api/screen?c=${code}&v=0`);
 assert.equal(g.b.view.game.phase, 'letter'); assert.equal(g.b.view.game.scores[0].r, 600); t('lo schermo riceve la ruota');
+w = await post(state, '/api/state', S({ game: { ...G0, wheel: [100, 'J', 'B', 'P', 200, 300], phase: 'jolly', loss: 'B', scores: [{ r: 600, t: 1200, j: 1 }, { r: 0, t: 0, j: 7 }], spin: { seq: 2, i: 2, turns: 4, j: 0.3 } }, ev: { seq: 5, t: 'jolly', p: 0, dup: 1 } }), token);
+assert.equal(w.s, 200);
+sv = JSON.parse(env.DB._db.prepare('SELECT state FROM rooms').get().state);
+assert.equal(sv.game.phase, 'jolly'); assert.equal(sv.game.loss, 'B'); assert.equal(sv.game.scores[0].j, 1); assert.equal(sv.game.scores[1].j, 0); assert.ok(sv.game.wheel.includes('J')); assert.equal(sv.ev.t, 'jolly'); assert.equal(sv.ev.dup, 1); t('Jolly: spicchio, fase, gettone ed evento salvati');
 // ruota non valida o modalita' spenta: game = null, lo stato resta valido
 for (const bad of [{ ...G0, wheel: [1, 2, 3] }, { ...G0, wheel: [100, 'X', 1, 2, 3, 4] }, { ...G0, on: false }, { ...G0, wheel: Array(40).fill(100) }]) {
   w = await post(state, '/api/state', S({ game: bad }), token);
@@ -98,7 +102,7 @@ t('ruota non valida scartata');
 // punteggi fuori scala ripuliti, lunghezza uguale ai concorrenti
 w = await post(state, '/api/state', S({ game: { ...G0, scores: [{ r: -5, t: 1e12 }], spin: { seq: 'x', i: 99, turns: 99, j: 7 } } }), token);
 sv = JSON.parse(env.DB._db.prepare('SELECT state FROM rooms').get().state);
-assert.equal(sv.game.scores.length, 2); assert.deepEqual(sv.game.scores[0], { r: 0, t: 0 }); assert.equal(sv.game.spin.i, -1); assert.equal(sv.game.spin.turns, 4); assert.equal(sv.game.spin.j, 0.5);
+assert.equal(sv.game.scores.length, 2); assert.deepEqual(sv.game.scores[0], { r: 0, t: 0, j: 0 }); assert.equal(sv.game.spin.i, -1); assert.equal(sv.game.spin.turns, 4); assert.equal(sv.game.spin.j, 0.5);
 t('punteggi ripuliti');
 // frase risolta
 w = await post(state, '/api/state', S({ game: G0, ev: { seq: 30, t: 'solved', p: 0, pts: 600 } }), token);

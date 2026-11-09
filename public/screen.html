@@ -57,6 +57,9 @@
 .pl.game.on .s{color:#ffd84a}
 .pl.game .t{font-size:.55em;opacity:.75;letter-spacing:.06em}
 .pl .s.bump{animation:bump .9s ease}
+.pl .jl{font-size:.5em;letter-spacing:.08em;font-weight:800;color:#fff;background:#d6249f;border-radius:999px;padding:.12em .7em;margin-top:.25em;white-space:nowrap}
+.pl.ask{animation:ask 1s ease-in-out infinite}
+@keyframes ask{0%,100%{filter:none}50%{filter:drop-shadow(0 0 .45em #ff5cd1) brightness(1.25)}}
 @keyframes bump{0%{transform:scale(1)}30%{transform:scale(1.55);color:#7dffb0}100%{transform:scale(1)}}
 
 /* annuncio in alto */
@@ -259,7 +262,7 @@ function drawPanels(){
   playersEl.innerHTML='';
   pl.forEach(function(name,n){
     var sp=document.createElement('span');
-    sp.className='pl'+(game?' game':'')+(n===state.turn?' on':'');
+    sp.className='pl'+(game?' game':'')+(n===state.turn?' on':'')+(game&&game.phase==='jolly'&&n===state.turn?' ask':'');
     var nm=document.createElement('span');
     nm.className='n';nm.textContent=name;
     sp.appendChild(nm);
@@ -269,6 +272,11 @@ function drawPanels(){
       s1.className='s';s1.textContent=sc.r;
       if(prevScores&&prevScores[n]&&sc.r>prevScores[n].r)s1.classList.add('bump');
       sp.appendChild(s1);
+      if(sc.j){
+        var jl=document.createElement('span');
+        jl.className='jl';jl.textContent=t('wheel_jolly').toUpperCase();
+        sp.appendChild(jl);
+      }
       if(sc.t){
         var s2=document.createElement('span');
         s2.className='t';s2.textContent=t('score_total')+' '+sc.t;
@@ -309,6 +317,10 @@ function onEvent(ev,fresh){
     banner(t('s_solved',{name:name,pts:ev.pts||0}));
   }else if(ev.t==='wrong'){
     banner(t('s_wrong'));S.wrong();
+  }else if(ev.t==='jolly'){
+    banner(t(ev.dup?'s_jolly_dup':'s_jolly',{name:name}));S.land();
+  }else if(ev.t==='jollyuse'){
+    banner(t('s_jollyuse',{name:name}));S.land();
   }
 }
 
@@ -333,9 +345,11 @@ function applyState(s){
     Object.keys(rev).forEach(function(i){if(!prevRev[i])fresh[i]=true;});
   }
   var first=!state;
+  var wasAsk=!!(state&&state.game&&state.game.phase==='jolly');
   state=s;prevRev=rev;
   var r=draw(fresh);
   drawPanels();
+  if(!first&&s.game&&s.game.phase==='jolly'&&!wasAsk)banner(t('s_jollyask',{name:s.players[s.turn]||''}));
   var ev=s.ev;
   if(ev&&typeof ev.seq==='number'){
     var isNew=!first&&ev.seq!==lastSeq;
@@ -363,6 +377,7 @@ var DARK_TEXT={'#f5c542':1,'#ff8a2b':1};
 function segLabel(v){
   if(v==='B')return t('wheel_bankrupt').toUpperCase();
   if(v==='P')return t('wheel_pass').toUpperCase();
+  if(v==='J')return t('wheel_jolly').toUpperCase();
   return String(v);
 }
 function drawWheel(w){
@@ -375,6 +390,7 @@ function drawWheel(w){
     var a0=-Math.PI/2+i*a,a1=a0+a,v=w[i],fill,txt='#fff';
     if(v==='B'){fill='#14141c';}
     else if(v==='P'){fill='#ffffff';txt='#14141c';}
+    else if(v==='J'){fill='#d6249f';}
     else{
       var ci=i%PALETTE.length;
       if(i===n-1&&ci===0)ci=3;
@@ -456,12 +472,13 @@ function startWheel(v,cont){
 }
 function landed(v){
   var g=v.game,seg=g.wheel[g.spin.i];
-  var who=(v.ev&&typeof v.ev.p==='number'&&v.players[v.ev.p])||'';
+  var who=((v.ev&&['spin','bankrupt','pass','jolly'].indexOf(v.ev.t)>=0&&typeof v.ev.p==='number')?v.players[v.ev.p]:v.players[v.turn])||'';
   resEl.innerHTML='';
   if(who){var sm=document.createElement('small');sm.textContent=who;resEl.appendChild(sm);}
   resEl.appendChild(document.createTextNode(segLabel(seg)));
   if(seg==='B'){resEl.classList.add('bad');S.bankrupt();}
   else if(seg==='P'){resEl.classList.add('bad');S.pass();}
+  else if(seg==='J'){S.land();}
   else{S.land();}
   setTimeout(function(){
     wheelWrap.hidden=true;
